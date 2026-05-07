@@ -7,9 +7,41 @@
     "client": "npm --prefix client run dev",
     "server": "npm --prefix server run dev",
     "build": "npm --prefix client run build",
-    "check": "node --check server/server.js && npm --prefix client run build"
+    "check": "node --check server/server.js && npm --prefix client run build",
+    "desktop:build": "npm run build && electron-builder --mac dmg --linux AppImage deb",
+    "desktop:build:linux": "npm run build && electron-builder --linux AppImage deb",
+    "desktop:build:mac": "npm run build && electron-builder --mac dmg"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "main": "desktop/main.cjs",
+  "build": {
+    "appId": "com.thelycoris.solvane",
+    "productName": "Solvane",
+    "files": [
+      "desktop/**/*",
+      "client/dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "category": "Office",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "maintainer": "The Lycoris Labs <hello@thelycoris.com>"
+    }
   }
 }

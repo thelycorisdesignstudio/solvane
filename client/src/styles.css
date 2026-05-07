@@ -99,3 +99,6 @@ html{scroll-behavior:smooth}body,button,input,select,textarea,a{font-family:'Bri
   .toolSections .toolgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
   .toolSections .toolgrid button{font-size:.76rem!important;min-height:40px!important;padding:9px 6px!important;border-radius:14px!important}
 }
+
+.desktopBand{width:min(1120px,92vw);margin:4rem auto;padding:clamp(1.4rem,4vw,3rem);border:1px solid #ffffff18;border-radius:36px;background:#10261acc;box-shadow:0 30px 90px #0006}.desktopBand h2{font-size:clamp(2rem,5vw,4rem);line-height:.95;margin:.2rem 0 1rem;letter-spacing:-.05em}.desktopBand p{color:var(--muted);font-size:1.08rem;line-height:1.65}.desktopBand div{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem}.desktopBand span{border:1px solid #ffffff18;background:#0b1d14;border-radius:999px;padding:.7rem 1rem}
+@media(max-width:760px){.desktopBand{width:calc(100% - 28px)!important;margin:24px auto!important;padding:22px!important;border-radius:24px!important}.desktopBand h2{font-size:2.2rem!important}.desktopBand p{font-size:.92rem!important;line-height:1.5!important}.desktopBand span{font-size:.76rem!important;padding:.5rem .65rem!important}.workspace header h1{font-size:1.25rem!important}.editStrip span{letter-spacing:.08em!important}}
