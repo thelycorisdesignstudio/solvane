@@ -2,3 +2,6 @@
 
 button:disabled{opacity:.45;cursor:not-allowed}.inspector{min-width:0}.workspace,.panes{min-width:0}
 @media(max-width:900px){.pdfbox,.viewer{min-height:520px}.viewer iframe{min-height:470px}.inspector nav{position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:.5rem}}
+
+.mobilePdf{display:none}
+@media(max-width:900px){.mobilePdf{display:block;margin-bottom:1rem;border:1px solid #ffffff18;border-radius:22px;overflow:hidden}.mobilePdf .pdfbox{min-height:420px}.mobilePdf iframe{min-height:360px}.panes>.viewer{display:none}.inspector{min-height:calc(100vh - 120px)}.pdfbar{flex-wrap:wrap;align-items:flex-start}.pdfbar strong{width:100%;font-size:.9rem}.pdfbar a{font-size:.78rem}}
