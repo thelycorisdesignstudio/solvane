@@ -178,3 +178,6 @@ img, svg, canvas, iframe, object, video { max-width: 100%; }
   .toolSections .toolgrid,.inspector nav,.editStrip{grid-template-columns:1fr!important}
   .pdfFrame,.pdfFrame iframe{height:48vh!important;min-height:48vh!important}
 }
+
+/* Solvane unique logo mark */
+.markIcon{background:transparent!important;box-shadow:none!important;width:34px!important;height:34px!important;border-radius:12px!important;overflow:visible!important}.solvaneGlyph{display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,.28))}.landingNav .markIcon{width:32px!important;height:32px!important}.landingNav .solvaneGlyph{width:32px;height:32px}@media(max-width:760px){.landingNav .markIcon,.landingNav .solvaneGlyph{width:28px!important;height:28px!important}.markIcon{width:30px!important;height:30px!important}}
