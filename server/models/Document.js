@@ -1,0 +1,1 @@
+import mongoose from 'mongoose';export default mongoose.model('Document',new mongoose.Schema({owner:String,title:String,originalName:String,mime:String,size:Number,path:String,url:String,text:String,tags:[String],language:String},{timestamps:true}));

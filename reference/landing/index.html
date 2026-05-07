@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELLUM — The Document OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,200;0,300;0,400;0,500;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --forest:#0D2018;
+  --forest-mid:#122819;
+  --forest-light:#1A3825;
+  --forest-bright:#234D31;
+  --cream:#F5F0E5;
+  --cream-dim:#D8D2C4;
+  --cream-muted:#9A9488;
+  --cream-faint:rgba(245,240,229,0.08);
+  --cream-border:rgba(245,240,229,0.12);
+  --cream-border2:rgba(245,240,229,0.06);
+  --white:#FDFAF5;
+}
+html{scroll-behavior:smooth}
+body{background:var(--forest);color:var(--cream);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden}
+
+/* CURSOR */
+.cursor{position:fixed;width:8px;height:8px;background:var(--cream);border-radius:50%;pointer-events:none;z-index:9999;transition:transform .15s;mix-blend-mode:difference}
+.cursor-ring{position:fixed;width:30px;height:30px;border:1px solid rgba(245,240,229,0.35);border-radius:50%;pointer-events:none;z-index:9998;transition:all .08s}
+
+/* SCROLL PROGRESS */
+.progress-bar{position:fixed;top:0;left:0;width:0%;height:2px;background:var(--cream);z-index:200;opacity:.6}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:28px 64px;display:flex;align-items:center;justify-content:space-between;transition:all .4s}
+nav.scrolled{background:rgba(13,32,24,0.95);backdrop-filter:blur(16px);padding:20px 64px;border-bottom:1px solid var(--cream-border2)}
+.nav-logo{font-family:'DM Serif Display',serif;font-size:20px;letter-spacing:.04em;color:var(--cream)}
+.nav-links{display:flex;gap:44px;list-style:none}
+.nav-links a{color:var(--cream-muted);text-decoration:none;font-size:13px;letter-spacing:.05em;font-weight:400;transition:color .25s}
+.nav-links a:hover{color:var(--cream)}
+.nav-cta{border:1px solid var(--cream-border);color:var(--cream);padding:10px 28px;font-size:13px;font-weight:400;letter-spacing:.06em;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .3s}
+.nav-cta:hover{background:var(--cream);color:var(--forest)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 40px 80px;position:relative;overflow:hidden}
+
+/* Pixel pattern background - inspired by the contract PDF */
+.hero-pattern{position:absolute;bottom:0;left:0;right:0;height:320px;opacity:.07;overflow:hidden}
+.pixel-grid{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;height:100%}
+.pixel{background:var(--cream)}
+.pixel.dark{background:transparent}
+
+.hero-line{position:absolute;top:0;left:50%;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(245,240,229,0.06),transparent)}
+
+.hero-tag{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--cream-border);padding:7px 18px;font-size:11px;letter-spacing:.18em;color:var(--cream-dim);margin-bottom:52px;animation:fadeUp .8s ease both}
+.hero-tag-dot{width:5px;height:5px;background:var(--cream);border-radius:50%;opacity:.6;animation:blink 2.5s infinite}
+@keyframes blink{0%,100%{opacity:.6}50%{opacity:.15}}
+
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(60px,8.5vw,120px);font-weight:400;line-height:.95;letter-spacing:-.01em;margin-bottom:28px;animation:fadeUp .8s .1s ease both}
+.hero-title em{font-style:italic;opacity:.65}
+
+.hero-sub{font-size:clamp(15px,1.8vw,18px);font-weight:300;color:var(--cream-dim);max-width:520px;line-height:1.75;margin-bottom:52px;animation:fadeUp .8s .2s ease both}
+
+.hero-ctas{display:flex;gap:14px;align-items:center;animation:fadeUp .8s .3s ease both}
+.btn-fill{background:var(--cream);color:var(--forest);padding:15px 40px;font-size:13px;font-weight:500;letter-spacing:.07em;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .3s}
+.btn-fill:hover{background:var(--white);transform:translateY(-2px)}
+.btn-outline{color:var(--cream);padding:15px 40px;font-size:13px;letter-spacing:.07em;border:1px solid var(--cream-border);background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .3s}
+.btn-outline:hover{border-color:var(--cream);background:var(--cream-faint)}
+
+.hero-stats{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:72px;animation:fadeUp .8s .5s ease both}
+.stat{text-align:center}
+.stat-n{font-family:'DM Serif Display',serif;font-size:38px;font-weight:400}
+.stat-l{font-size:11px;letter-spacing:.14em;color:var(--cream-muted);margin-top:4px}
+
+/* TICKER */
+.ticker{border-top:1px solid var(--cream-border2);border-bottom:1px solid var(--cream-border2);padding:18px 0;overflow:hidden}
+.ticker-track{display:flex;gap:64px;animation:tick 28s linear infinite;width:max-content}
+.ticker-item{font-size:11px;letter-spacing:.2em;color:var(--cream-muted);white-space:nowrap;display:flex;align-items:center;gap:24px}
+.ticker-item::after{content:'·';color:var(--cream-border);font-size:18px}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* SECTIONS */
+.section{padding:120px 80px}
+.s-eye{font-size:10px;letter-spacing:.22em;color:var(--cream-muted);margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.s-eye::before{content:'';height:1px;width:28px;background:var(--cream-muted)}
+.s-title{font-family:'DM Serif Display',serif;font-size:clamp(38px,4.5vw,64px);font-weight:400;line-height:1.05;max-width:760px}
+.s-title em{font-style:italic;opacity:.6}
+
+/* VERSUS SECTION */
+.versus{background:var(--forest-mid);padding:100px 80px}
+.versus-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:60px;background:var(--cream-border2)}
+.vs-col{padding:48px;background:var(--forest-mid)}
+.vs-col.vellum-col{background:var(--forest-light)}
+.vs-head{display:flex;align-items:center;gap:14px;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--cream-border2)}
+.vs-label{font-size:14px;font-weight:500;letter-spacing:.05em}
+.vs-label.dead{color:var(--cream-muted);text-decoration:line-through;opacity:.45}
+.vs-label.live{color:var(--cream)}
+.vs-row{display:flex;align-items:flex-start;gap:14px;padding:13px 0;border-bottom:1px solid var(--cream-border2);font-size:13px;color:var(--cream-muted);line-height:1.5}
+.vs-row.v{color:var(--cream)}
+.vs-icon{flex-shrink:0;margin-top:1px;font-size:14px}
+
+/* FEATURES */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:64px;background:var(--cream-border2)}
+.feat{padding:44px 36px;background:var(--forest);transition:background .3s;position:relative;overflow:hidden}
+.feat:hover{background:var(--forest-light)}
+.feat-n{font-family:'DM Serif Display',serif;font-size:52px;color:rgba(245,240,229,0.07);line-height:1;margin-bottom:20px}
+.feat-icon{font-size:26px;margin-bottom:20px}
+.feat-name{font-size:16px;font-weight:500;margin-bottom:10px}
+.feat-desc{font-size:13px;color:var(--cream-muted);line-height:1.7}
+.feat-badge{display:inline-block;border:1px solid var(--cream-border);color:var(--cream-muted);font-size:9px;letter-spacing:.14em;padding:3px 9px;margin-top:14px}
+
+/* AI SHOWCASE */
+.ai-section{background:var(--forest-mid);padding:100px 80px}
+.ai-window{border:1px solid var(--cream-border2);margin-top:64px;display:grid;grid-template-columns:280px 1fr;min-height:460px}
+.ai-win-sidebar{border-right:1px solid var(--cream-border2);padding:28px 20px}
+.ai-win-title{font-size:10px;letter-spacing:.16em;color:var(--cream-muted);margin-bottom:16px}
+.doc-row{padding:11px 14px;margin-bottom:2px;cursor:pointer;transition:background .2s;border-left:2px solid transparent}
+.doc-row.on{background:rgba(245,240,229,0.05);border-left-color:var(--cream)}
+.doc-row-name{font-size:12px;color:var(--cream);margin-bottom:3px}
+.doc-row-meta{font-size:10px;color:var(--cream-muted)}
+.ai-win-main{padding:36px}
+.ai-result-card{background:rgba(245,240,229,0.03);border:1px solid var(--cream-border2);padding:20px;margin-bottom:14px}
+.arc-label{font-size:9px;letter-spacing:.16em;color:var(--cream-muted);margin-bottom:8px}
+.arc-text{font-size:13px;color:var(--cream-dim);line-height:1.7}
+.arc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.arc-chip{background:rgba(245,240,229,0.05);border:1px solid var(--cream-border);color:var(--cream-dim);font-size:11px;padding:4px 10px}
+.ai-input-row{display:flex;gap:0;margin-top:28px}
+.ai-input-row input{flex:1;background:rgba(245,240,229,0.04);border:1px solid var(--cream-border2);border-right:none;padding:12px 16px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:13px;outline:none}
+.ai-input-row input::placeholder{color:var(--cream-muted)}
+.ai-input-row input:focus{border-color:rgba(245,240,229,0.25)}
+.ai-input-row button{background:var(--cream);color:var(--forest);border:none;padding:12px 20px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* PRICING */
+.pricing{padding:120px 80px}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:64px;background:var(--cream-border2)}
+.price-card{background:var(--forest);padding:44px 36px;position:relative}
+.price-card.featured{background:var(--forest-light)}
+.price-badge{position:absolute;top:0;left:36px;background:var(--cream);color:var(--forest);font-size:9px;letter-spacing:.14em;padding:5px 12px;font-weight:500}
+.price-tier{font-size:10px;letter-spacing:.18em;color:var(--cream-muted);margin-bottom:20px}
+.price-amt{font-family:'DM Serif Display',serif;font-size:60px;font-weight:400;line-height:1;margin-bottom:6px}
+.price-amt sup{font-size:20px;vertical-align:super}
+.price-period{font-size:12px;color:var(--cream-muted);margin-bottom:32px}
+.price-list{list-style:none;margin-bottom:36px}
+.price-list li{padding:9px 0;border-bottom:1px solid var(--cream-border2);font-size:13px;color:var(--cream-muted);display:flex;gap:10px}
+.price-list li::before{content:'→';flex-shrink:0;opacity:.5}
+.price-list li.hi{color:var(--cream)}
+.price-list li.hi::before{opacity:1}
+.btn-price-fill{width:100%;padding:13px;font-size:12px;letter-spacing:.08em;font-weight:500;border:none;background:var(--cream);color:var(--forest);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s}
+.btn-price-fill:hover{background:var(--white)}
+.btn-price-ghost{width:100%;padding:13px;font-size:12px;letter-spacing:.08em;font-weight:400;border:1px solid var(--cream-border);background:transparent;color:var(--cream);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .25s}
+.btn-price-ghost:hover{border-color:var(--cream);background:var(--cream-faint)}
+
+/* PIXEL ART DIVIDER - inspired by the contract */
+.pixel-divider{height:160px;overflow:hidden;position:relative;background:var(--forest-mid)}
+.pd-inner{position:absolute;bottom:0;left:0;right:0;height:140px;display:flex;align-items:flex-end;gap:0}
+.pd-block{flex:1;background:var(--cream);opacity:.06}
+
+/* CTA SECTION */
+.cta-section{padding:140px 80px;text-align:center;position:relative;overflow:hidden;background:var(--forest-light)}
+.cta-bg-text{position:absolute;font-family:'DM Serif Display',serif;font-size:clamp(120px,18vw,240px);font-weight:400;color:rgba(245,240,229,0.03);top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;letter-spacing:-.02em}
+.cta-title{font-family:'DM Serif Display',serif;font-size:clamp(44px,6vw,88px);font-weight:400;line-height:.95;margin-bottom:36px;position:relative}
+.cta-title em{font-style:italic;opacity:.6}
+.cta-sub{font-size:16px;color:var(--cream-dim);max-width:520px;margin:0 auto 48px;line-height:1.7;position:relative}
+
+/* FOOTER */
+footer{background:var(--forest-mid);padding:80px;border-top:1px solid var(--cream-border2);display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:48px}
+.footer-brand .footer-logo{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:14px}
+.footer-brand p{font-size:13px;color:var(--cream-muted);line-height:1.65;max-width:220px}
+.fc-title{font-size:10px;letter-spacing:.18em;color:var(--cream-muted);margin-bottom:18px}
+.fc-links{list-style:none;display:flex;flex-direction:column;gap:9px}
+.fc-links a{color:rgba(245,240,229,0.35);text-decoration:none;font-size:13px;transition:color .2s}
+.fc-links a:hover{color:var(--cream)}
+.footer-bottom{padding:24px 80px;border-top:1px solid var(--cream-border2);display:flex;justify-content:space-between;align-items:center}
+.fc{font-size:11px;color:rgba(245,240,229,0.2);letter-spacing:.08em}
+
+/* PIXEL PATTERN FOOTER DECORATION */
+.footer-pattern{height:80px;overflow:hidden;position:relative}
+.fp-row{display:flex;height:40px}
+.fp-cell{flex:1;border:1px solid rgba(245,240,229,0.04)}
+.fp-cell.filled{background:rgba(245,240,229,0.04)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(36px);transition:all .85s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+
+@media(max-width:768px){
+  nav{padding:20px 24px}
+  .section,.versus,.ai-section,.pricing,.cta-section{padding:72px 24px}
+  .versus-grid,.feat-grid,.price-grid{grid-template-columns:1fr}
+  .ai-window{grid-template-columns:1fr}
+  .ai-win-sidebar{border-right:none;border-bottom:1px solid var(--cream-border2)}
+  footer{grid-template-columns:1fr 1fr;padding:60px 24px}
+  .footer-bottom{padding:20px 24px;flex-direction:column;gap:8px}
+  .hero-stats{gap:36px}
+  .nav-links{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+<div class="progress-bar" id="prog"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">VELLUM</div>
+  <ul class="nav-links">
+    <li><a href="#compare">Compare</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#ai">Intelligence</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta">START FREE</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-line"></div>
+  <div class="hero-pattern">
+    <div class="pixel-grid" id="pixelGrid"></div>
+  </div>
+  <div class="hero-tag"><span class="hero-tag-dot"></span>THE DOCUMENT OS — FINALLY</div>
+  <h1 class="hero-title">The last document<br>tool you'll <em>ever need.</em></h1>
+  <p class="hero-sub">VELLUM replaces Adobe Acrobat with an AI-native Document OS. Smarter, faster, Arabic-first, and a fraction of the price.</p>
+  <div class="hero-ctas">
+    <button class="btn-fill">GET STARTED FREE</button>
+    <button class="btn-outline">WATCH DEMO →</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-n">10×</div><div class="stat-l">FASTER</div></div>
+    <div class="stat"><div class="stat-n">$7</div><div class="stat-l">vs $30/MONTH</div></div>
+    <div class="stat"><div class="stat-n">∞</div><div class="stat-l">AI INTELLIGENCE</div></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="ticker-item">PDF INTELLIGENCE</span>
+    <span class="ticker-item">AI ANALYSIS</span>
+    <span class="ticker-item">E-SIGNATURES</span>
+    <span class="ticker-item">ARABIC NATIVE</span>
+    <span class="ticker-item">CONTRACT INTELLIGENCE</span>
+    <span class="ticker-item">REAL-TIME COLLABORATION</span>
+    <span class="ticker-item">DOCUMENT AUTOMATION</span>
+    <span class="ticker-item">DATA ROOM</span>
+    <span class="ticker-item">DIFC COMPLIANT</span>
+    <span class="ticker-item">PDF INTELLIGENCE</span>
+    <span class="ticker-item">AI ANALYSIS</span>
+    <span class="ticker-item">E-SIGNATURES</span>
+    <span class="ticker-item">ARABIC NATIVE</span>
+    <span class="ticker-item">CONTRACT INTELLIGENCE</span>
+    <span class="ticker-item">REAL-TIME COLLABORATION</span>
+    <span class="ticker-item">DOCUMENT AUTOMATION</span>
+    <span class="ticker-item">DATA ROOM</span>
+    <span class="ticker-item">DIFC COMPLIANT</span>
+  </div>
+</div>
+
+<!-- VERSUS -->
+<section class="versus reveal" id="compare">
+  <div class="s-eye">THE RECKONING</div>
+  <h2 class="s-title">Adobe had 30 years.<br>We needed <em>30 days.</em></h2>
+  <div class="versus-grid">
+    <div class="vs-col">
+      <div class="vs-head"><div class="vs-label dead">Adobe Acrobat</div></div>
+      <div class="vs-row"><span class="vs-icon">✕</span> $29.99/month per user — no exceptions</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> 200MB bloated desktop app to open a file</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> Zero real AI — a search bar in disguise</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> Arabic/RTL support is an afterthought</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> No collaboration — it's a viewer, not a workspace</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> E-signatures cost extra. Always.</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> UI designed in 2004. Updated never.</div>
+      <div class="vs-row"><span class="vs-icon">✕</span> No document automation. Manual everything.</div>
+    </div>
+    <div class="vs-col vellum-col">
+      <div class="vs-head"><div class="vs-label live">VELLUM</div></div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Free tier + Pro at $7 + Teams at $19/seat</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Instant web-based. Opens in under 1 second.</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Claude-powered AI intelligence at the core</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Arabic-first. Bilingual. True RTL native.</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Real-time collaboration, comments, review flows</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> E-signatures built in. DIFC & UAE compliant.</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Modern workspace built for how you work now</div>
+      <div class="vs-row v"><span class="vs-icon">→</span> Generate any document from a single prompt</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section reveal" id="features">
+  <div class="s-eye">CAPABILITIES</div>
+  <h2 class="s-title">Everything Acrobat should<br>have been, <em>and more.</em></h2>
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="feat-n">01</div>
+      <div class="feat-icon">◎</div>
+      <div class="feat-name">Document Intelligence</div>
+      <div class="feat-desc">Upload any PDF — instantly get a summary, key clauses extracted, risk flags surfaced, and action items identified. Ask anything in plain English or Arabic.</div>
+      <div class="feat-badge">AI POWERED</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">02</div>
+      <div class="feat-icon">✦</div>
+      <div class="feat-name">E-Signature Engine</div>
+      <div class="feat-desc">Sign, send, and track documents with legally-binding e-signatures. UAE DIFC-compliant. Approval chains, audit trails, and witness support built in.</div>
+      <div class="feat-badge">DIFC COMPLIANT</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">03</div>
+      <div class="feat-icon">◈</div>
+      <div class="feat-name">Arabic-First</div>
+      <div class="feat-desc">True RTL support. Native Arabic OCR that actually works. Bilingual document generation — English and Arabic side by side. Built for the GCC, not bolted on.</div>
+      <div class="feat-badge">GCC NATIVE</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">04</div>
+      <div class="feat-icon">⌁</div>
+      <div class="feat-name">Document Automation</div>
+      <div class="feat-desc">Describe what you need, VELLUM generates it. Contracts, invoices, MOUs, government forms, certificates — from a single prompt. Connect your data sources.</div>
+      <div class="feat-badge">GENERATIVE</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">05</div>
+      <div class="feat-icon">⊕</div>
+      <div class="feat-name">Document Comparison</div>
+      <div class="feat-desc">Upload two versions of any document and get a plain-English diff. Changes highlighted, clauses compared, additions and deletions surfaced intelligently.</div>
+      <div class="feat-badge">PRECISION</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">06</div>
+      <div class="feat-icon">⊞</div>
+      <div class="feat-name">Live Collaboration</div>
+      <div class="feat-desc">Real-time annotation, threaded comments, version history with AI-generated change summaries. What Google Docs did to Word, VELLUM does to Acrobat.</div>
+      <div class="feat-badge">MULTIPLAYER</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">07</div>
+      <div class="feat-icon">◧</div>
+      <div class="feat-name">Secure Data Room</div>
+      <div class="feat-desc">Turn any folder into a due diligence-ready data room. Granular permissions, watermarking, access logs, and NDA-gated sharing for serious deals.</div>
+      <div class="feat-badge">ENTERPRISE</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">08</div>
+      <div class="feat-icon">⊡</div>
+      <div class="feat-name">Universal Integrations</div>
+      <div class="feat-desc">VELLUM connects to every tool in your stack — CRMs, ERPs, Google Workspace, Microsoft 365, Notion, Zapier, and hundreds more via native API.</div>
+      <div class="feat-badge">CONNECTED</div>
+    </div>
+    <div class="feat">
+      <div class="feat-n">09</div>
+      <div class="feat-icon">◉</div>
+      <div class="feat-name">Document Analytics</div>
+      <div class="feat-desc">Know exactly who opened your documents, which pages they read, how long they spent, and when. Full engagement intelligence for every doc you send.</div>
+      <div class="feat-badge">INTELLIGENCE</div>
+    </div>
+  </div>
+</section>
+
+<!-- AI DEMO -->
+<section class="ai-section reveal" id="ai">
+  <div class="s-eye">DOCUMENT INTELLIGENCE</div>
+  <h2 class="s-title">Ask your documents <em>anything.</em></h2>
+  <div class="ai-window">
+    <div class="ai-win-sidebar">
+      <div class="ai-win-title">DOCUMENTS</div>
+      <div class="doc-row on"><div class="doc-row-name">Partnership Agreement.pdf</div><div class="doc-row-meta">14 pages · Analyzed</div></div>
+      <div class="doc-row"><div class="doc-row-name">Q4 Financial Report.pdf</div><div class="doc-row-meta">32 pages · Analyzed</div></div>
+      <div class="doc-row"><div class="doc-row-name">عقد الإيجار.pdf</div><div class="doc-row-meta">8 pages · RTL · Analyzed</div></div>
+      <div class="doc-row"><div class="doc-row-name">Service Contract.pdf</div><div class="doc-row-meta">6 pages · Pending</div></div>
+    </div>
+    <div class="ai-win-main">
+      <div class="ai-result-card">
+        <div class="arc-label">AI SUMMARY</div>
+        <div class="arc-text">This partnership agreement establishes a 50/50 joint venture between Lycoris Technologies and a client for a 3-year term. Key obligations include quarterly profit distributions, shared IP ownership for co-developed assets, and a 6-month non-compete clause upon dissolution.</div>
+        <div class="arc-chips">
+          <span class="arc-chip">📅 3-year term</span>
+          <span class="arc-chip">⚠ 2 risk clauses</span>
+          <span class="arc-chip">Payment: NET 30</span>
+          <span class="arc-chip">Non-compete: 6 months</span>
+        </div>
+      </div>
+      <div class="ai-result-card" style="border-left:2px solid rgba(200,80,60,0.5)">
+        <div class="arc-label" style="color:rgba(220,100,80,0.8)">RISK FLAG — HIGH</div>
+        <div class="arc-text" style="color:#c9a8a0">Clause 14.3 grants unilateral termination rights with only 15-day notice — unusually short. Recommend negotiating to 90 days minimum. Clause 9.1 has ambiguous IP ownership language for derivative works.</div>
+      </div>
+      <div class="ai-input-row">
+        <input type="text" placeholder="Ask anything about this document...">
+        <button>ASK →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing reveal" id="pricing">
+  <div class="s-eye">PRICING</div>
+  <h2 class="s-title">Adobe charges $30.<br><em>We don't.</em></h2>
+  <div class="price-grid">
+    <div class="price-card">
+      <div class="price-tier">FREE FOREVER</div>
+      <div class="price-amt"><sup>$</sup>0</div>
+      <div class="price-period">per month</div>
+      <ul class="price-list">
+        <li>5 documents per month</li>
+        <li>AI summaries & analysis</li>
+        <li>3 e-signatures per month</li>
+        <li>PDF viewer & annotator</li>
+        <li>5GB storage</li>
+      </ul>
+      <button class="btn-price-ghost">START FREE</button>
+    </div>
+    <div class="price-card featured">
+      <div class="price-badge">MOST POPULAR</div>
+      <div class="price-tier">PRO</div>
+      <div class="price-amt"><sup>$</sup>7</div>
+      <div class="price-period">per month · billed annually</div>
+      <ul class="price-list">
+        <li class="hi">Unlimited documents</li>
+        <li class="hi">Full AI intelligence suite</li>
+        <li class="hi">Unlimited e-signatures</li>
+        <li class="hi">Document automation</li>
+        <li class="hi">Arabic + bilingual support</li>
+        <li>50GB storage</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="btn-price-fill">GET PRO — $7/mo</button>
+    </div>
+    <div class="price-card">
+      <div class="price-tier">TEAMS</div>
+      <div class="price-amt"><sup>$</sup>19</div>
+      <div class="price-period">per seat/month · annually</div>
+      <ul class="price-list">
+        <li>Everything in Pro</li>
+        <li>Real-time collaboration</li>
+        <li>Data room access</li>
+        <li>Admin dashboard</li>
+        <li>API access</li>
+        <li>UAE data residency</li>
+        <li>250GB storage</li>
+      </ul>
+      <button class="btn-price-ghost">START TEAM TRIAL</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div class="cta-bg-text">VELLUM</div>
+  <h2 class="cta-title"><s style="opacity:.25">Adobe Acrobat.</s><br><em>VELLUM.</em></h2>
+  <p class="cta-sub">The AI-native Document OS. Built for the Arab world. Used by the whole world.</p>
+  <button class="btn-fill" style="font-size:14px;padding:18px 56px">START FOR FREE TODAY</button>
+</section>
+
+<!-- PIXEL PATTERN DIVIDER -->
+<div class="footer-pattern" id="fpat"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logo">VELLUM</div>
+    <p>The AI-native Document OS built for the Arab world — and the world.</p>
+  </div>
+  <div>
+    <div class="fc-title">PRODUCT</div>
+    <ul class="fc-links">
+      <li><a href="#">Features</a></li>
+      <li><a href="#">AI Intelligence</a></li>
+      <li><a href="#">E-Signatures</a></li>
+      <li><a href="#">Data Room</a></li>
+      <li><a href="#">API</a></li>
+    </ul>
+  </div>
+  <div>
+    <div class="fc-title">COMPANY</div>
+    <ul class="fc-links">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Blog</a></li>
+      <li><a href="#">Careers</a></li>
+      <li><a href="#">Press</a></li>
+    </ul>
+  </div>
+  <div>
+    <div class="fc-title">LEGAL</div>
+    <ul class="fc-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">DIFC Compliance</a></li>
+      <li><a href="#">Security</a></li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span class="fc">© 2025 VELLUM · A LYCORIS PRODUCT · DUBAI, UAE</span>
+  <span class="fc">THE DOCUMENT OS</span>
+</div>
+
+<script>
+// Cursor
+const cur=document.getElementById('cursor'),cr=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx-4+'px';cur.style.top=my-4+'px'});
+(function raf(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;cr.style.left=rx-15+'px';cr.style.top=ry-15+'px';requestAnimationFrame(raf)})();
+document.querySelectorAll('button,a,.doc-row').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.transform='scale(1.8)';cr.style.transform='scale(1.4)'});
+  el.addEventListener('mouseleave',()=>{cur.style.transform='scale(1)';cr.style.transform='scale(1)'});
+});
+
+// Progress
+window.addEventListener('scroll',()=>{
+  const p=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100;
+  document.getElementById('prog').style.width=p+'%';
+  const nav=document.getElementById('nav');
+  nav.classList.toggle('scrolled',window.scrollY>60);
+});
+
+// Reveal
+const obs=new IntersectionObserver(e=>e.forEach(x=>x.isIntersecting&&x.target.classList.add('in')),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Pixel hero pattern
+const grid=document.getElementById('pixelGrid');
+if(grid){
+  for(let i=0;i<200;i++){
+    const p=document.createElement('div');
+    p.className='pixel'+(Math.random()>.55?' dark':'');
+    grid.appendChild(p);
+  }
+}
+
+// Footer pixel pattern
+const fp=document.getElementById('fpat');
+if(fp){
+  for(let r=0;r<2;r++){
+    const row=document.createElement('div');
+    row.className='fp-row';
+    for(let c=0;c<40;c++){
+      const cell=document.createElement('div');
+      cell.className='fp-cell'+(Math.random()>.7?' filled':'');
+      row.appendChild(cell);
+    }
+    fp.appendChild(row);
+  }
+}
+</script>
+</body>
+</html>

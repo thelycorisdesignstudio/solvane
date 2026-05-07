@@ -1,0 +1,1 @@
+import mongoose from 'mongoose';export default mongoose.model('Signature',new mongoose.Schema({documentId:String,owner:String,signerName:String,signerEmail:String,imageData:String,evidenceHash:String,ip:String,userAgent:String,timezone:String,accepted:Boolean},{timestamps:true}));

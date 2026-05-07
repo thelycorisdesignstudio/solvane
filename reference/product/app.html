@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELLUM — Document OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,200;0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --forest:#0D2018;--forest-mid:#112219;--forest-light:#1A3324;--forest-bright:#234D31;
+  --cream:#F5F0E5;--cream-dim:#C8C3B5;--cream-muted:#7A7870;--cream-faint:rgba(245,240,229,0.05);
+  --border:rgba(245,240,229,0.09);--border2:rgba(245,240,229,0.05);
+  --red:#C87060;--green:#5B9E6F;--amber:#C9A050;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--forest);color:var(--cream);font-family:'DM Sans',sans-serif;font-weight:300;font-size:14px}
+.app{display:grid;grid-template-rows:50px 1fr;height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--forest-mid);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:0}
+.tl{font-family:'DM Serif Display',serif;font-size:17px;color:var(--cream);letter-spacing:.04em;padding-right:24px;border-right:1px solid var(--border);margin-right:18px;flex-shrink:0}
+.ttools{display:flex;gap:1px;flex:1}
+.tbtn{padding:6px 14px;font-size:12px;letter-spacing:.05em;color:var(--cream-muted);background:transparent;border:none;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap;border-radius:2px}
+.tbtn:hover{background:rgba(245,240,229,0.05);color:var(--cream-dim)}
+.tbtn.act{background:rgba(245,240,229,0.07);color:var(--cream);border-bottom:1px solid rgba(245,240,229,0.3)}
+.tr{display:flex;align-items:center;gap:10px;padding-left:18px;border-left:1px solid var(--border);flex-shrink:0}
+.tr-badge{border:1px solid var(--border);color:var(--cream-muted);font-size:10px;letter-spacing:.1em;padding:3px 9px}
+.tr-av{width:26px;height:26px;background:var(--cream);color:var(--forest);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:256px 1fr 348px;height:100%;overflow:hidden}
+
+/* SIDEBAR */
+.sb{background:var(--forest-mid);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sb-ttl{font-size:10px;letter-spacing:.16em;color:var(--cream-muted)}
+.up-btn{background:var(--cream);color:var(--forest);border:none;padding:5px 12px;font-size:10px;letter-spacing:.07em;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.up-btn:hover{background:#e8e3d8}
+.sb-srch{padding:10px 14px;border-bottom:1px solid var(--border2)}
+.sb-srch input{width:100%;background:rgba(245,240,229,0.04);border:1px solid var(--border);padding:7px 11px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
+.sb-srch input::placeholder{color:var(--cream-muted)}
+.sb-srch input:focus{border-color:rgba(245,240,229,0.2)}
+.dl{flex:1;overflow-y:auto;padding:6px}
+.dl::-webkit-scrollbar{width:2px}
+.dl::-webkit-scrollbar-thumb{background:rgba(245,240,229,0.08)}
+.di{padding:11px 12px;cursor:pointer;transition:background .2s;margin-bottom:1px;position:relative;border-left:2px solid transparent}
+.di:hover{background:rgba(245,240,229,0.03)}
+.di.on{background:rgba(245,240,229,0.05);border-left-color:var(--cream-dim)}
+.di-name{font-size:12px;color:var(--cream);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.di-meta{font-size:10px;color:var(--cream-muted);display:flex;gap:8px;align-items:center}
+.dst{padding:1px 6px;font-size:9px;letter-spacing:.1em}
+.dst.analyzed{border:1px solid rgba(91,158,111,0.35);color:var(--green)}
+.dst.pending{border:1px solid rgba(201,160,80,0.35);color:var(--amber)}
+.dst.signed{border:1px solid rgba(245,240,229,0.2);color:var(--cream-dim)}
+.di-del{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--cream-muted);cursor:pointer;font-size:14px;opacity:0;transition:opacity .2s;font-family:'DM Sans',sans-serif}
+.di:hover .di-del{opacity:1}
+
+/* VIEWER */
+.viewer{background:var(--forest);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.vtb{background:var(--forest-mid);border-bottom:1px solid var(--border);padding:9px 18px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.vdoc{font-size:12px;color:var(--cream-dim);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.va{background:transparent;border:1px solid var(--border);color:var(--cream-muted);padding:4px 12px;font-size:11px;letter-spacing:.06em;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.va:hover{border-color:rgba(245,240,229,0.3);color:var(--cream)}
+.va.sign{background:rgba(245,240,229,0.05);border-color:rgba(245,240,229,0.2);color:var(--cream-dim)}
+.pnav{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--cream-muted)}
+.pnav button{background:rgba(245,240,229,0.05);border:1px solid var(--border);color:var(--cream-muted);width:24px;height:24px;cursor:pointer;font-size:12px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.pnav button:hover:not(:disabled){background:rgba(245,240,229,0.1);color:var(--cream);border-color:rgba(245,240,229,0.25)}
+.pnav button:disabled{opacity:.3;cursor:default}
+.zi{width:40px;background:rgba(245,240,229,0.04);border:1px solid var(--border);color:var(--cream);text-align:center;font-size:11px;padding:2px;font-family:'DM Sans',sans-serif}
+
+.vc{flex:1;overflow:auto;padding:32px;display:flex;justify-content:center;align-items:flex-start}
+.vc::-webkit-scrollbar{width:3px}
+.vc::-webkit-scrollbar-thumb{background:rgba(245,240,229,0.08)}
+.pdf-wrap{background:white;box-shadow:0 12px 48px rgba(0,0,0,0.5)}
+.pdf-wrap canvas{display:block;max-width:100%}
+.vempty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:14px;color:var(--cream-muted)}
+.vempty-icon{font-size:40px;opacity:.25}
+.vempty-ttl{font-size:18px;color:var(--cream-dim)}
+.vempty-sub{font-size:12px;max-width:260px;line-height:1.65}
+.loading-ov{position:absolute;inset:0;background:rgba(13,32,24,0.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10}
+.spin{width:28px;height:28px;border:1px solid rgba(245,240,229,0.15);border-top-color:var(--cream);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:11px;color:var(--cream-muted);letter-spacing:.1em}
+
+/* AI PANEL */
+.ap{background:var(--forest-mid);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.ap-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ap-ttl{font-size:10px;letter-spacing:.14em;color:var(--cream-muted);display:flex;align-items:center;gap:7px}
+.ap-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:p 2s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.2}}
+.ap-tabs{display:flex;border-bottom:1px solid var(--border)}
+.aptab{flex:1;padding:9px;font-size:10px;letter-spacing:.08em;color:var(--cream-muted);background:transparent;border:none;cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif}
+.aptab.on{color:var(--cream);border-bottom-color:var(--cream-dim);background:rgba(245,240,229,0.03)}
+.aptab:hover:not(.on){color:var(--cream-dim);background:rgba(245,240,229,0.02)}
+
+.abody{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.abody::-webkit-scrollbar{width:2px}
+.abody::-webkit-scrollbar-thumb{background:rgba(245,240,229,0.08)}
+
+/* AI CARDS */
+.ac{background:rgba(245,240,229,0.03);border:1px solid var(--border);padding:14px;border-radius:1px}
+.ac-lbl{font-size:9px;letter-spacing:.16em;color:var(--cream-muted);margin-bottom:7px}
+.ac-txt{font-size:12px;color:var(--cream-dim);line-height:1.7}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{background:rgba(245,240,229,0.04);border:1px solid var(--border);color:var(--cream-muted);font-size:10px;padding:3px 9px;cursor:pointer;transition:background .2s}
+.chip:hover{background:rgba(245,240,229,0.08)}
+.ri{padding:9px 11px;margin-bottom:5px;border-left:2px solid}
+.ri.high{background:rgba(200,112,96,.06);border-color:var(--red)}
+.ri.medium{background:rgba(201,160,80,.05);border-color:var(--amber)}
+.ri.low{background:rgba(91,158,111,.05);border-color:var(--green)}
+.ri-lbl{font-size:8px;letter-spacing:.14em;margin-bottom:3px}
+.ri.high .ri-lbl{color:var(--red)}
+.ri.medium .ri-lbl{color:var(--amber)}
+.ri.low .ri-lbl{color:var(--green)}
+.ri-txt{font-size:11px;color:var(--cream-muted);line-height:1.55}
+.kp{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);font-size:12px;color:var(--cream-muted)}
+.kp-n{font-family:'DM Serif Display',serif;font-size:15px;color:var(--cream-dim);flex-shrink:0;width:16px}
+
+/* CHAT */
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.chat-msgs::-webkit-scrollbar{width:2px}
+.chat-msgs::-webkit-scrollbar-thumb{background:rgba(245,240,229,0.08)}
+.msg.user .mb{background:rgba(245,240,229,0.07);border:1px solid var(--border);color:var(--cream);padding:9px 12px;font-size:12px;margin-left:16px;line-height:1.6}
+.msg.ai .mb{background:rgba(245,240,229,0.03);border:1px solid var(--border2);color:var(--cream-dim);padding:9px 12px;font-size:12px;margin-right:8px;line-height:1.6}
+.mf{font-size:9px;letter-spacing:.1em;margin-bottom:3px}
+.msg.user .mf{color:var(--cream-muted);text-align:right}
+.msg.ai .mf{color:var(--cream-muted);opacity:.6}
+.typing{display:flex;gap:3px;align-items:center;padding:9px 12px;background:rgba(245,240,229,0.03);border:1px solid var(--border2);width:fit-content}
+.typing span{width:5px;height:5px;background:var(--cream-muted);border-radius:50%;animation:ty .8s ease infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes ty{0%,80%,100%{transform:scale(.75);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* CHAT INPUT */
+.ci-wrap{padding:12px 14px;border-top:1px solid var(--border);flex-shrink:0}
+.ci-quick{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.ci-quick button{background:rgba(245,240,229,0.04);border:1px solid var(--border);color:var(--cream-muted);font-size:10px;padding:4px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ci-quick button:hover{background:rgba(245,240,229,0.08);color:var(--cream-dim)}
+.ci-row{display:flex}
+.ci-row textarea{flex:1;background:rgba(245,240,229,0.04);border:1px solid var(--border);border-right:none;padding:9px 12px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;resize:none;height:54px;font-weight:300}
+.ci-row textarea::placeholder{color:var(--cream-muted)}
+.ci-row textarea:focus{border-color:rgba(245,240,229,0.2)}
+.ci-send{background:var(--cream);color:var(--forest);border:none;padding:0 16px;cursor:pointer;font-size:16px;flex-shrink:0;transition:background .2s;font-family:'DM Sans',sans-serif}
+.ci-send:hover{background:#e8e3d8}
+
+/* SIGN MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal{background:var(--forest-light);border:1px solid var(--border);width:480px;max-width:92vw}
+.mhd{padding:22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.mttl{font-family:'DM Serif Display',serif;font-size:20px}
+.mclose{background:none;border:none;color:var(--cream-muted);font-size:20px;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif}
+.mbody{padding:22px}
+.mlbl{font-size:9px;letter-spacing:.14em;color:var(--cream-muted);margin-bottom:7px}
+.minp{width:100%;background:rgba(245,240,229,0.04);border:1px solid var(--border);padding:9px 12px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:14px}
+.minp:focus{border-color:rgba(245,240,229,0.25)}
+.sign-cv{width:100%;height:110px;background:rgba(245,240,229,0.03);border:1px solid var(--border);cursor:crosshair;display:block}
+.clr-btn{background:transparent;border:1px solid var(--border);color:var(--cream-muted);padding:4px 10px;cursor:pointer;font-size:10px;font-family:'DM Sans',sans-serif;margin-top:7px;letter-spacing:.05em}
+.mft{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{background:transparent;border:1px solid var(--border);color:var(--cream-muted);padding:9px 22px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px}
+.btn-sign{background:var(--cream);color:var(--forest);border:none;padding:9px 22px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;letter-spacing:.04em}
+.btn-sign:hover{background:#e8e3d8}
+
+/* AUTOMATE TAB */
+.tpl-card{background:rgba(245,240,229,0.03);border:1px solid var(--border);padding:12px 14px;cursor:pointer;transition:background .2s;display:flex;align-items:flex-start;gap:10px;margin-bottom:1px}
+.tpl-card:hover{background:rgba(245,240,229,0.06)}
+.tpl-icon{font-size:18px;flex-shrink:0}
+.tpl-name{font-size:12px;color:var(--cream);margin-bottom:2px}
+.tpl-desc{font-size:10px;color:var(--cream-muted);line-height:1.5}
+#fileInput{display:none}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--forest-light);border:1px solid var(--border);border-left:2px solid var(--cream-dim);color:var(--cream);padding:10px 22px;font-size:12px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:rgba(245,240,229,0.08)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="fileInput" accept=".pdf,.txt" multiple>
+<div class="toast" id="toast"></div>
+
+<script>
+const S={
+  docs:[
+    {id:1,name:'Partnership Agreement.pdf',pages:14,status:'analyzed',size:'2.4 MB',content:null,url:null},
+    {id:2,name:'Q4 Financial Report.pdf',pages:32,status:'analyzed',size:'5.1 MB',content:null,url:null},
+    {id:3,name:'عقد الإيجار.pdf',pages:8,status:'signed',size:'1.2 MB',content:null,url:null,rtl:true},
+    {id:4,name:'NDA Template.pdf',pages:4,status:'pending',size:'0.8 MB',content:null,url:null},
+  ],
+  active:null,aiTab:'intel',msgs:[],loading:false,pdfDoc:null,
+  page:1,pages:1,zoom:100,modal:false,analyses:{},q:'',typing:false
+};
+let sc,sx;const isD=false;
+let sigDrawing=false,sigLX=0,sigLY=0;
+
+function toast(m,d=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
+
+function mk(tag,cls,...ch){
+  const e=document.createElement(tag);
+  if(cls)e.className=cls;
+  ch.forEach(c=>{
+    if(c==null)return;
+    if(typeof c==='string')e.appendChild(document.createTextNode(c));
+    else if(Array.isArray(c))c.forEach(x=>x&&e.appendChild(x));
+    else e.appendChild(c);
+  });
+  return e;
+}
+const div=(cls,...c)=>mk('div',cls,...c);
+const span=(cls,t)=>{const e=mk('span',cls);e.textContent=t;return e;};
+function btn(cls,txt,fn){const b=mk('button',cls);b.textContent=txt;b.onclick=fn;return b;}
+
+async function claude(prompt,ctx=''){
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:`You are VELLUM's document intelligence AI. Analyze documents professionally and concisely.${ctx?'\nDocument context: '+ctx:''}`,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const d=await r.json();
+    return d.content?.[0]?.text||'Unable to analyze.';
+  }catch{return 'Network error.';}
+}
+
+async function analyze(doc){
+  if(S.analyses[doc.id])return S.analyses[doc.id];
+  const ctx=doc.content?`"${doc.name}" content: ${doc.content.slice(0,3000)}`:`"${doc.name}", ${doc.pages} pages, ${doc.size}`;
+  const r=await claude(`Analyze this document and return ONLY valid JSON (no markdown):
+{"summary":"2-3 sentence summary","keyPoints":["point1","point2","point3","point4"],"risks":[{"level":"HIGH","text":"risk description"}],"actions":["action1","action2"],"keyData":["data1","data2"]}`,ctx);
+  try{
+    const p=JSON.parse(r.replace(/```json|```/g,'').trim());
+    S.analyses[doc.id]=p;return p;
+  }catch{
+    const fb={summary:r.slice(0,250),keyPoints:['Review document manually'],risks:[{level:'MEDIUM',text:'Manual review recommended'}],actions:['Review and assess'],keyData:[doc.name,doc.size]};
+    S.analyses[doc.id]=fb;return fb;
+  }
+}
+
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  const a=div('app');
+  a.appendChild(renderTop());
+  const m=div('main');
+  m.appendChild(renderSB());
+  m.appendChild(renderViewer());
+  m.appendChild(renderPanel());
+  a.appendChild(m);
+  if(S.modal)a.appendChild(renderModal());
+  app.appendChild(a);
+  if(S.modal)initSig();
+  if(S.pdfDoc)setTimeout(()=>renderPage(),50);
+  const cm=document.querySelector('.chat-msgs');
+  if(cm)cm.scrollTop=cm.scrollHeight;
+}
+
+function renderTop(){
+  const t=div('topbar');
+  t.appendChild(div('tl','VELLUM'));
+  const tools=div('ttools');
+  [['View','view'],['Annotate','ann'],['Sign','sign'],['Compare','cmp'],['Automate','auto'],['Share','shr']].forEach(([l,id])=>{
+    const b=btn('tbtn'+(S.tab===id?' act':''),l,()=>{
+      if(id==='sign'){S.modal=true;render();return;}
+      if(id==='shr'){toast('Share link copied!');return;}
+      if(id==='auto'){S.aiTab='auto';render();return;}
+      S.tab=id;render();
+    });
+    tools.appendChild(b);
+  });
+  t.appendChild(tools);
+  const tr=div('tr');
+  tr.appendChild(div('tr-badge','PRO'));
+  tr.appendChild(div('tr-av','AS'));
+  t.appendChild(tr);
+  return t;
+}
+
+function renderSB(){
+  const sb=div('sb');
+  const hd=div('sb-hd');
+  hd.appendChild(span('sb-ttl','DOCUMENTS'));
+  hd.appendChild(btn('up-btn','+ UPLOAD',()=>document.getElementById('fileInput').click()));
+  sb.appendChild(hd);
+  const sr=div('sb-srch');
+  const inp=document.createElement('input');
+  inp.type='text';inp.placeholder='Search...';inp.value=S.q;
+  inp.addEventListener('input',e=>{S.q=e.target.value;render();});
+  sr.appendChild(inp);sb.appendChild(sr);
+  const dl=div('dl');
+  S.docs.filter(d=>d.name.toLowerCase().includes(S.q.toLowerCase())).forEach(doc=>{
+    const item=div('di'+(S.active===doc.id?' on':''));
+    item.onclick=()=>selectDoc(doc);
+    const nm=div('di-name',doc.name);
+    if(doc.rtl)nm.style.direction='rtl';
+    const meta=div('di-meta');
+    meta.appendChild(span('',doc.pages+'p'));
+    meta.appendChild(span('dst '+doc.status,doc.status.toUpperCase()));
+    const del=btn('di-del','×',e=>{e.stopPropagation();S.docs=S.docs.filter(x=>x.id!==doc.id);if(S.active===doc.id){S.active=null;S.pdfDoc=null;}render();toast('Removed');});
+    item.appendChild(nm);item.appendChild(meta);item.appendChild(del);
+    dl.appendChild(item);
+  });
+  sb.appendChild(dl);
+  return sb;
+}
+
+function renderViewer(){
+  const v=div('viewer');v.id='viewer';
+  const tb=div('vtb');
+  const doc=S.docs.find(d=>d.id===S.active);
+  const nm=div('vdoc',doc?doc.name:'No document selected');
+  if(doc?.rtl)nm.style.direction='rtl';
+  tb.appendChild(nm);
+  if(doc){
+    const pn=div('pnav');
+    const pv=btn('','‹',()=>{if(S.page>1){S.page--;renderPage();}});if(S.page<=1)pv.disabled=true;
+    const nx=btn('',`›`,()=>{if(S.page<S.pages){S.page++;renderPage();}});if(S.page>=S.pages)nx.disabled=true;
+    pn.appendChild(pv);pn.appendChild(span('',`${S.page}/${S.pages}`));pn.appendChild(nx);
+    const zm=document.createElement('input');zm.className='zi';zm.value=S.zoom+'%';
+    const zi=btn('va','+',()=>{S.zoom=Math.min(200,S.zoom+25);renderPage();});
+    const zo=btn('va','−',()=>{S.zoom=Math.max(50,S.zoom-25);renderPage();});
+    tb.appendChild(pn);tb.appendChild(zo);tb.appendChild(zm);tb.appendChild(zi);
+    tb.appendChild(btn('va sign','✍ SIGN',()=>{S.modal=true;render();}));
+    tb.appendChild(btn('va','↗ SHARE',()=>toast('Link copied!')));
+    tb.appendChild(btn('va','↓ EXPORT',()=>toast('Preparing...')));
+  }
+  v.appendChild(tb);
+  const vc=div('vc');vc.id='vc';
+  if(!doc){
+    const em=div('vempty');
+    em.appendChild(span('vempty-icon','◻'));
+    em.appendChild(span('vempty-ttl','Select or upload a document'));
+    em.appendChild(mk('p','vempty-sub','Upload PDFs or text files. VELLUM instantly analyzes them with AI.'));
+    const ub=btn('up-btn','+ UPLOAD',()=>document.getElementById('fileInput').click());
+    ub.style.marginTop='14px';ub.style.padding='10px 28px';
+    em.appendChild(ub);
+    vc.addEventListener('dragover',e=>{e.preventDefault();vc.style.borderColor='rgba(245,240,229,0.2)';});
+    vc.addEventListener('drop',e=>{e.preventDefault();vc.style.borderColor='';handleFiles(e.dataTransfer.files);});
+    vc.appendChild(em);
+  }else{
+    const pw=div('pdf-wrap');pw.id='pw';
+    pw.style.position='relative';
+    const c=document.createElement('canvas');c.id='pc';
+    pw.appendChild(c);
+    if(S.loading){const lo=div('loading-ov');lo.appendChild(div('spin'));lo.appendChild(span('loading-txt','LOADING...'));pw.appendChild(lo);}
+    vc.appendChild(pw);
+  }
+  v.appendChild(vc);
+  return v;
+}
+
+function renderPanel(){
+  const p=div('ap');
+  const hd=div('ap-hd');
+  const ttl=div('ap-ttl');
+  ttl.appendChild(div('ap-dot'));ttl.appendChild(document.createTextNode('VELLUM INTELLIGENCE'));
+  hd.appendChild(ttl);p.appendChild(hd);
+  const tabs=div('ap-tabs');
+  [['intel','ANALYZE'],['chat','CHAT'],['auto','AUTOMATE']].forEach(([id,lbl])=>{
+    tabs.appendChild(btn('aptab'+(S.aiTab===id?' on':''),lbl,()=>{S.aiTab=id;render();}));
+  });
+  p.appendChild(tabs);
+  if(S.aiTab==='intel'){p.appendChild(renderIntel());}
+  else if(S.aiTab==='chat'){p.appendChild(renderChat());p.appendChild(renderChatInput());}
+  else{p.appendChild(renderAuto());}
+  return p;
+}
+
+function renderIntel(){
+  const body=div('abody');
+  const doc=S.docs.find(d=>d.id===S.active);
+  if(!doc){
+    const c=div('ac');c.appendChild(div('ac-lbl','◻ NO DOCUMENT SELECTED'));
+    c.appendChild(div('ac-txt','Select a document from the sidebar to begin AI analysis. VELLUM will extract key insights, flag risks, and surface action items automatically.'));
+    body.appendChild(c);return body;
+  }
+  const an=S.analyses[doc.id];
+  if(!an){
+    const c=div('ac');c.appendChild(div('ac-lbl','◎ READY TO ANALYZE'));
+    c.appendChild(div('ac-txt',`Upload "${doc.name}" and click below to run full AI analysis.`));
+    const b=btn('up-btn','⊕ ANALYZE NOW',async()=>{toast('Analyzing...');await analyze(doc);render();});
+    b.style.cssText='margin-top:10px;width:100%;padding:9px;';
+    c.appendChild(b);body.appendChild(c);return body;
+  }
+  if(an.summary){
+    const c=div('ac');c.appendChild(div('ac-lbl','EXECUTIVE SUMMARY'));c.appendChild(div('ac-txt',an.summary));body.appendChild(c);
+  }
+  if(an.keyPoints?.length){
+    const c=div('ac');c.appendChild(div('ac-lbl','KEY POINTS'));
+    an.keyPoints.forEach((pt,i)=>{const r=div('kp');r.appendChild(span('kp-n',(i+1)+''));r.appendChild(span('',pt));c.appendChild(r);});
+    body.appendChild(c);
+  }
+  if(an.risks?.length){
+    const c=div('ac');c.appendChild(div('ac-lbl','RISK FLAGS'));
+    an.risks.forEach(r=>{const ri=div('ri '+r.level.toLowerCase());ri.appendChild(span('ri-lbl',r.level+' RISK'));ri.appendChild(div('ri-txt',r.text));c.appendChild(ri);});
+    body.appendChild(c);
+  }
+  if(an.actions?.length){
+    const c=div('ac');c.appendChild(div('ac-lbl','ACTION ITEMS'));
+    const ch=div('chips');an.actions.forEach(a=>ch.appendChild(span('chip','→ '+a)));c.appendChild(ch);body.appendChild(c);
+  }
+  if(an.keyData?.length){
+    const c=div('ac');c.appendChild(div('ac-lbl','KEY DATA'));
+    const ch=div('chips');an.keyData.forEach(d=>ch.appendChild(span('chip',d)));c.appendChild(ch);body.appendChild(c);
+  }
+  const rb=btn('va','↺ RE-ANALYZE',async()=>{delete S.analyses[doc.id];render();toast('Re-analyzing...');await analyze(doc);render();});
+  rb.style.cssText='width:100%;padding:9px;margin-top:4px;text-align:center;';
+  body.appendChild(rb);
+  return body;
+}
+
+function renderChat(){
+  const msgs=div('chat-msgs');
+  if(!S.msgs.length){
+    const c=div('ac');c.appendChild(div('ac-lbl','◎ DOCUMENT CHAT'));
+    const doc=S.docs.find(d=>d.id===S.active);
+    c.appendChild(div('ac-txt',doc?`Ask me anything about "${doc.name}".`:'Select a document first, then ask anything about it.'));
+    msgs.appendChild(c);
+  }
+  S.msgs.forEach(msg=>{
+    const m=div('msg '+msg.role);
+    m.appendChild(span('mf',msg.role==='user'?'YOU':'VELLUM AI'));
+    m.appendChild(div('mb',msg.content));
+    msgs.appendChild(m);
+  });
+  if(S.typing){
+    const m=div('msg ai');m.appendChild(span('mf','VELLUM AI'));
+    const ty=div('typing');for(let i=0;i<3;i++)ty.appendChild(mk('span'));m.appendChild(ty);msgs.appendChild(m);
+  }
+  return msgs;
+}
+
+function renderChatInput(){
+  const w=div('ci-wrap');
+  const q=div('ci-quick');
+  ['Summarize this','Extract key terms','Flag risks','What are the dates?','Who are the parties?'].forEach(p=>{
+    const b=btn('',p,()=>send(p));b.className='';
+    b.style.cssText='background:rgba(245,240,229,0.04);border:1px solid var(--border);color:var(--cream-muted);font-size:10px;padding:4px 8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .2s';
+    b.onmouseover=()=>{b.style.background='rgba(245,240,229,0.08)';b.style.color='var(--cream-dim)';};
+    b.onmouseout=()=>{b.style.background='rgba(245,240,229,0.04)';b.style.color='var(--cream-muted)';};
+    q.appendChild(b);
+  });
+  w.appendChild(q);
+  const row=div('ci-row');
+  const ta=document.createElement('textarea');ta.id='ci';ta.placeholder='Ask anything about this document...';
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendFromInput();}});
+  const sb=mk('button','ci-send');sb.textContent='→';sb.onclick=sendFromInput;
+  row.appendChild(ta);row.appendChild(sb);w.appendChild(row);
+  return w;
+}
+
+function renderAuto(){
+  const body=div('abody');
+  const c=div('ac');c.appendChild(div('ac-lbl','⊕ DOCUMENT AUTOMATION'));
+  c.appendChild(div('ac-txt','Generate any document from a prompt. Describe what you need and VELLUM builds it.'));
+  body.appendChild(c);
+  [['📝','NDA Agreement','Non-disclosure for UAE/GCC context'],['🤝','Service Contract','Professional services with milestones'],['🏢','MOU Document','Memorandum of understanding'],['💼','Offer Letter','UAE labor law compliant'],['🏠','Tenancy Contract','Bilingual Arabic/English lease'],['📊','VAT Invoice','UAE FTA-compliant invoice']].forEach(([icon,name,desc])=>{
+    const t=div('tpl-card');
+    t.onclick=()=>genDoc(name,desc);
+    t.appendChild(span('tpl-icon',icon));
+    const info=div('');info.appendChild(div('tpl-name',name));info.appendChild(div('tpl-desc',desc));
+    t.appendChild(info);body.appendChild(t);
+  });
+  const custom=div('ac');custom.appendChild(div('ac-lbl','✎ CUSTOM DOCUMENT'));
+  const ta=document.createElement('textarea');ta.id='aprompt';ta.placeholder='Describe the document you need...';
+  ta.style.cssText='width:100%;background:rgba(245,240,229,0.04);border:1px solid var(--border);padding:9px;color:var(--cream);font-family:DM Sans,sans-serif;font-size:12px;outline:none;resize:none;height:70px;margin-bottom:8px';
+  custom.appendChild(ta);
+  const gb=btn('up-btn','⊕ GENERATE',async()=>{
+    const p=document.getElementById('aprompt')?.value;
+    if(p)await genFromPrompt(p);else toast('Describe the document first');
+  });gb.style.cssText='width:100%;padding:9px;';
+  custom.appendChild(gb);body.appendChild(custom);
+  return body;
+}
+
+function renderModal(){
+  const ov=div('ov');
+  ov.onclick=e=>{if(e.target===ov){S.modal=false;render();}};
+  const m=div('modal');
+  const hd=div('mhd');hd.appendChild(div('mttl','Sign Document'));hd.appendChild(btn('mclose','×',()=>{S.modal=false;render();}));
+  m.appendChild(hd);
+  const body=div('mbody');
+  body.appendChild(div('mlbl','FULL NAME'));
+  const ni=document.createElement('input');ni.className='minp';ni.type='text';ni.placeholder='Your name';ni.id='sname';
+  body.appendChild(ni);
+  body.appendChild(div('mlbl','EMAIL'));
+  const ei=document.createElement('input');ei.className='minp';ei.type='email';ei.placeholder='your@email.com';
+  body.appendChild(ei);
+  body.appendChild(div('mlbl','DRAW SIGNATURE'));
+  const cv=document.createElement('canvas');cv.className='sign-cv';cv.id='scv';cv.width=436;cv.height=110;
+  body.appendChild(cv);
+  body.appendChild(btn('clr-btn','CLEAR',()=>{if(sx)sx.clearRect(0,0,cv.width,cv.height);}));
+  m.appendChild(body);
+  const ft=div('mft');
+  ft.appendChild(btn('btn-cancel','CANCEL',()=>{S.modal=false;render();}));
+  ft.appendChild(btn('btn-sign','APPLY SIGNATURE',()=>{
+    const name=document.getElementById('sname')?.value||'Signer';
+    const doc=S.docs.find(d=>d.id===S.active);if(doc){doc.status='signed';}
+    S.modal=false;toast(`✓ Signed by ${name}`);render();
+  }));
+  m.appendChild(ft);ov.appendChild(m);return ov;
+}
+
+function initSig(){
+  sc=document.getElementById('scv');if(!sc)return;
+  sx=sc.getContext('2d');sx.strokeStyle='#F5F0E5';sx.lineWidth=2;sx.lineCap='round';sx.lineJoin='round';
+  sc.addEventListener('mousedown',e=>{sigDrawing=true;[sigLX,sigLY]=[e.offsetX,e.offsetY];});
+  sc.addEventListener('mousemove',e=>{if(!sigDrawing)return;sx.beginPath();sx.moveTo(sigLX,sigLY);sx.lineTo(e.offsetX,e.offsetY);sx.stroke();[sigLX,sigLY]=[e.offsetX,e.offsetY];});
+  sc.addEventListener('mouseup',()=>sigDrawing=false);sc.addEventListener('mouseleave',()=>sigDrawing=false);
+}
+
+async function selectDoc(doc){
+  S.active=doc.id;S.page=1;S.pdfDoc=null;S.msgs=[];render();
+  if(doc.url){await loadPDF(doc.url);}
+  else{
+    const c=document.getElementById('pc');if(c){
+      const ctx=c.getContext('2d');c.width=595;c.height=842;
+      ctx.fillStyle='#FDFAF5';ctx.fillRect(0,0,595,842);
+      ctx.fillStyle='#0D2018';ctx.font='500 22px DM Sans';ctx.fillText(doc.name.replace('.pdf',''),56,76);
+      ctx.font='300 13px DM Sans';ctx.fillStyle='#7A7870';ctx.fillText(`${doc.pages} pages  ·  ${doc.size}  ·  ${doc.status.toUpperCase()}`,56,100);
+      ctx.fillStyle='#E8E3D8';for(let i=0;i<22;i++){ctx.fillRect(56,136+i*26,i%4===3?180:460,1.5);}
+      ctx.strokeStyle='rgba(13,32,24,0.15)';ctx.strokeRect(56,610,460,56);ctx.fillStyle='rgba(13,32,24,0.08)';ctx.fillRect(56,610,460,56);
+      ctx.fillStyle='#0D2018';ctx.font='400 12px DM Sans';ctx.fillText('[ Signature Required ]',240,642);
+      S.pages=doc.pages;render();
+    }
+  }
+  if(!S.analyses[doc.id])setTimeout(()=>analyze(doc).then(()=>render()),600);
+}
+
+async function loadPDF(url){
+  S.loading=true;render();
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pd=await pdfjsLib.getDocument(url).promise;
+    S.pdfDoc=pd;S.pages=pd.numPages;S.loading=false;render();await renderPage();
+  }catch{S.loading=false;render();toast('Error loading PDF');}
+}
+
+async function renderPage(){
+  if(!S.pdfDoc)return;
+  try{
+    const pg=await S.pdfDoc.getPage(S.page);
+    const vp=pg.getViewport({scale:S.zoom/100*1.5});
+    const c=document.getElementById('pc');if(!c)return;
+    const ctx=c.getContext('2d');c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:ctx,viewport:vp}).promise;
+  }catch(e){console.error(e);}
+}
+
+async function sendFromInput(){
+  const ta=document.getElementById('ci');const t=ta?.value?.trim();if(t)await send(t);
+}
+
+async function send(text){
+  if(!text.trim())return;
+  const ta=document.getElementById('ci');if(ta)ta.value='';
+  S.msgs.push({role:'user',content:text});S.typing=true;render();
+  const doc=S.docs.find(d=>d.id===S.active);
+  const ctx=doc?`Doc: "${doc.name}" ${doc.content?'Content: '+doc.content.slice(0,2000):''}${S.analyses[doc.id]?' Analysis: '+JSON.stringify(S.analyses[doc.id]):''}`:' No document selected.';
+  const r=await claude(text,ctx);
+  S.msgs.push({role:'ai',content:r});S.typing=false;render();
+}
+
+async function genDoc(name,desc){
+  toast('Generating '+name+'...');S.aiTab='chat';S.msgs=[];
+  const content=await claude(`Generate a professional ${name} document (${desc}) for UAE/GCC context. Include all standard clauses with [PLACEHOLDER] fields for customization. Format with clear sections.`);
+  const nd={id:Date.now(),name:name+' (Generated).pdf',pages:3,status:'pending',size:'0.3 MB',content};
+  S.docs.unshift(nd);S.active=nd.id;
+  S.msgs.push({role:'ai',content:`✓ ${name} generated and added to your documents.\n\n${content.slice(0,400)}...`});
+  render();
+}
+
+async function genFromPrompt(prompt){
+  toast('Generating...');S.aiTab='chat';S.msgs=[];
+  const content=await claude(`Generate a professional document: ${prompt}. Follow UAE/GCC standards, include all relevant clauses, use [PLACEHOLDER] for custom fields.`);
+  const nd={id:Date.now(),name:'Custom Document.pdf',pages:2,status:'pending',size:'0.3 MB',content};
+  S.docs.unshift(nd);S.active=nd.id;
+  S.msgs.push({role:'ai',content:`✓ Document generated.\n\n${content.slice(0,500)}...`});render();
+}
+
+function handleFiles(files){
+  Array.from(files).forEach(file=>{
+    const doc={id:Date.now()+Math.random(),name:file.name,pages:1,status:'pending',size:(file.size/1048576).toFixed(1)+' MB',content:null,url:null};
+    if(file.type.includes('pdf'))doc.url=URL.createObjectURL(file);
+    const r=new FileReader();
+    r.onload=e=>{if(!file.type.includes('pdf'))doc.content=e.target.result.toString().slice(0,5000);doc.status='analyzed';};
+    if(file.name.endsWith('.txt'))r.readAsText(file);else r.readAsArrayBuffer(file);
+    S.docs.unshift(doc);S.active=doc.id;toast('Uploading '+file.name+'...');
+    setTimeout(()=>selectDoc(doc),80);
+  });
+}
+
+document.getElementById('fileInput').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value='';});
+render();
+</script>
+</body>
+</html>
