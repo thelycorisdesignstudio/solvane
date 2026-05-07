@@ -85,3 +85,23 @@ MIT. See [LICENSE](./LICENSE).
 ## From
 
 Built in Dubai, United Arab Emirates by The Lycoris Labs for The Lycoris Foundation.
+
+
+## Preview-class feature target
+
+Solvane is designed to feel like Apple Preview for everyday document work, while staying honest about advanced PDF-editor boundaries.
+
+### Working/implemented categories
+
+- Viewing and navigation through browser PDF viewer
+- Page management: add, delete, rearrange, rotate, duplicate, extract, merge
+- Markup: highlight, underline, strike-through, notes, text boxes, shapes, arrows, speech bubbles
+- Signing: handwritten signature evidence
+- Forms: visible field fill and field-map groundwork
+- Images/export: PDF to images, images to PDF API
+- Security: password protection/decryption with host tooling, metadata cleaning, audit metadata
+- Legal utilities: Bates numbering, share links, basic redaction boxes
+
+### Not faked
+
+Solvane does not pretend to be a perfect Word-like PDF editor yet. True paragraph reflow, complex table editing, advanced OCR reconstruction, professional prepress, and enterprise legal workflows are long-term engine work.
