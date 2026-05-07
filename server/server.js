@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';import cors from 'cors';import helmet from 'helmet';import rateLimit from 'express-rate-limit';import path from 'path';import {fileURLToPath} from 'url';import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';import docRoutes from './routes/documents.js';import aiRoutes from './routes/ai.js';import signRoutes from './routes/signatures.js';import autoRoutes from './routes/automation.js';import toolRoutes from './routes/tools.js';import shareRoutes from './routes/share.js';import teamRoutes from './routes/team.js';import formRoutes from './routes/forms.js';import convertRoutes from './routes/convert.js';import commentRoutes from './routes/comments.js';import protectRoutes from './routes/protect.js';import securityRoutes from './routes/security.js';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));const app=express();
+app.set('trust proxy', 1);
 const origins=(process.env.CORS_ORIGINS||'http://localhost:5173,http://127.0.0.1:5173').split(',');
 app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'}}));app.use(cors({origin:(o,cb)=>!o||origins.includes(o)?cb(null,true):cb(new Error('CORS blocked')),credentials:true}));app.use(express.json({limit:'5mb'}));app.use(rateLimit({windowMs:15*60*1000,limit:500}));
 app.use('/uploads',express.static(path.join(__dirname,'uploads')));
