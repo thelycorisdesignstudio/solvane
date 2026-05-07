@@ -8,9 +8,9 @@
     "server": "npm --prefix server run dev",
     "build": "npm --prefix client run build",
     "check": "node --check server/server.js && npm --prefix client run build",
-    "desktop:build": "npm run build && electron-builder --mac dmg --linux AppImage deb",
-    "desktop:build:linux": "npm run build && electron-builder --linux AppImage deb",
-    "desktop:build:mac": "npm run build && electron-builder --mac dmg"
+    "desktop:build": "npm run build && electron-builder --mac dmg --linux AppImage deb --publish never",
+    "desktop:build:linux": "npm run build && electron-builder --linux AppImage deb --publish never",
+    "desktop:build:mac": "npm run build && electron-builder --mac dmg --publish never"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
@@ -43,5 +43,7 @@
       ],
       "maintainer": "The Lycoris Labs <hello@thelycoris.com>"
     }
-  }
+  },
+  "description": "Solvane — open-source Document OS",
+  "author": "The Lycoris Labs and The Lycoris Foundation"
 }
