@@ -46,3 +46,14 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 ## Notes
 AI endpoints currently include deterministic local fallback so the app remains useful without vendor keys. Add OpenAI/Anthropic/Azure providers in `server/routes/ai.js` and keep all keys backend-only.
+
+## Live deployment
+
+Current hosted build: https://vellum.thelycoris.com
+
+Production service on Jarvis VM:
+- Frontend: `/var/www/vellum`
+- Backend: `vellum-backend.service` on port `8081`
+- Nginx site: `vellum.thelycoris.com`
+- MongoDB database: `vellum`
+
