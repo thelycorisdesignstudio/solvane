@@ -1,17 +1,62 @@
-# SOLVANE - The Document OS
+# Solvane — The Document OS
 
-An original open-source MERN PDF/document platform by Lycoris. It uses the provided SOLVANE landing identity and builds a usable web app: auth, PDF uploads, workspace, backend-only AI endpoints, Arabic/RTL UI, document automation, and e-signature evidence capture.
+Solvane is an open-source, browser-first PDF and document operating system built by **The Lycoris Labs** for **The Lycoris Foundation** from **Dubai, United Arab Emirates**.
 
-This is not reverse-engineered Adobe Acrobat and does not bypass licenses, DRM, signatures, activation, or proprietary protections.
+Our goal is simple: powerful document tools should be available to everyone. PDFs carry contracts, invoices, education, public policy, research, opportunity, and identity. Solvane exists so people, students, founders, nonprofits, agencies, teams, and institutions can work with documents without being locked behind expensive software.
 
-## Stack
-- React + Vite client
-- Express API
-- MongoDB/Mongoose with local in-memory fallback for development only
-- JWT auth + bcrypt
-- Multer PDF uploads
+## Open-source commitment
 
-## Setup
+Solvane is released under the MIT License. The code is public so the community can inspect it, improve it, self-host it, adapt it for local needs, and help build document infrastructure for the better of humanity.
+
+## What Solvane does today
+
+- Upload and manage PDFs
+- View PDFs in the browser
+- Add/remove/extract pages
+- Rearrange pages
+- Rotate and crop pages
+- Highlight, underline, and strike-through
+- Add notes/comments
+- Add text boxes
+- Redact basic content with burn-in boxes
+- Draw/sign documents with signature evidence
+- Fill visible form text
+- Watermark and stamp PDFs
+- Merge PDFs API
+- Export text from embedded PDF text
+- Export PDF pages to images
+- Create PDFs from images API
+- Compress/optimize PDF object streams
+- Encrypt/decrypt PDFs with host tooling
+- Web-optimize/linearize PDFs
+- Share documents with tokenized links
+- Team workspace groundwork
+- Audit/protection metadata
+- 150+ language product direction with RTL/LTR support
+
+## What we do not fake
+
+Advanced PDF editing is hard. Solvane does not falsely claim perfect support for:
+
+- True paragraph-level inline editing of arbitrary existing PDF text
+- Professional reflow of complex PDF layouts
+- Advanced OCR editing for scanned PDFs without configured OCR engines
+- Complex table reconstruction from PDFs
+- Enterprise policy workflows without deployment configuration
+
+These are long-term engine goals, not fake UI claims.
+
+## Tech stack
+
+- React + Vite frontend
+- Express backend
+- MongoDB + Mongoose
+- PDF operations via `pdf-lib`, `qpdf`, and `poppler-utils` where available
+- JWT authentication
+- MIT License
+
+## Local development
+
 ```bash
 npm install
 npm --prefix client install
@@ -21,39 +66,22 @@ npm run dev
 ```
 
 ## Environment
-`server/.env.example`:
+
 ```env
-PORT=8080
+PORT=8081
 MONGO_URI=mongodb://127.0.0.1:27017/solvane
 JWT_SECRET=change-me
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:5173
 ```
 
-## APIs
-- `GET /api/health`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/documents`
-- `POST /api/documents` multipart PDF upload
-- `GET /api/documents/:id`
-- `DELETE /api/documents/:id`
-- `POST /api/ai/analyze/:id`
-- `POST /api/ai/chat/:id`
-- `GET /api/automation/templates`
-- `POST /api/automation/generate`
-- `GET /api/signatures/:documentId`
-- `POST /api/signatures/:documentId`
+## Security
 
-## Notes
-AI endpoints currently include deterministic local fallback so the app remains useful without vendor keys. Add OpenAI/Anthropic/Azure providers in `server/routes/ai.js` and keep all keys backend-only.
+See [SECURITY.md](./SECURITY.md). Never commit secrets, uploads, `.env` files, private PDFs, database dumps, or deployment credentials.
 
-## Live deployment
+## License
 
-Current hosted build: https://solvane.thelycoris.com
+MIT. See [LICENSE](./LICENSE).
 
-Production service on Jarvis VM:
-- Frontend: `/var/www/solvane`
-- Backend: `solvane-backend.service` on port `8081`
-- Nginx site: `solvane.thelycoris.com`
-- MongoDB database: `solvane`
+## From
 
+Built in Dubai, United Arab Emirates by The Lycoris Labs for The Lycoris Foundation.

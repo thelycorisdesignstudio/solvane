@@ -5,5 +5,16 @@ client/dist/
 server/uploads/*
 !server/uploads/.gitkeep
 .env
+*.env
 server/.env
 .DS_Store
+*.log
+*.pem
+*.key
+*.pfx
+*.crt
+*.zip
+*.tar.gz
+*.pdf
+*.sqlite
+*.dump
