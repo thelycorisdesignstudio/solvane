@@ -1,7 +1,6 @@
 const { app, BrowserWindow, shell } = require('electron');
-const path = require('path');
 
-const isDev = process.env.SOLVANE_DESKTOP_DEV === '1';
+const APP_URL = process.env.SOLVANE_APP_URL || 'https://solvane.thelycoris.com';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -19,13 +18,10 @@ function createWindow() {
     },
   });
 
-  const target = isDev
-    ? 'http://localhost:5173'
-    : `file://${path.join(__dirname, '../client/dist/index.html')}`;
-
-  win.loadURL(target);
+  win.loadURL(APP_URL);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith(APP_URL)) return { action: 'allow' };
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });

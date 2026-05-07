@@ -1,0 +1,39 @@
+name: Build Solvane Desktop Apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm --prefix client install
+      - run: npm run desktop:build:linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvane-linux
+          path: |
+            release/*.AppImage
+            release/*.deb
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm --prefix client install
+      - run: npm run desktop:build:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvane-macos
+          path: release/*.dmg
