@@ -1,6 +1,6 @@
-# VELLUM - The Document OS
+# SOLVANE - The Document OS
 
-An original open-source MERN PDF/document platform by Lycoris. It uses the provided VELLUM landing identity and builds a usable web app: auth, PDF uploads, workspace, backend-only AI endpoints, Arabic/RTL UI, document automation, and e-signature evidence capture.
+An original open-source MERN PDF/document platform by Lycoris. It uses the provided SOLVANE landing identity and builds a usable web app: auth, PDF uploads, workspace, backend-only AI endpoints, Arabic/RTL UI, document automation, and e-signature evidence capture.
 
 This is not reverse-engineered Adobe Acrobat and does not bypass licenses, DRM, signatures, activation, or proprietary protections.
 
@@ -24,7 +24,7 @@ npm run dev
 `server/.env.example`:
 ```env
 PORT=8080
-MONGO_URI=mongodb://127.0.0.1:27017/vellum
+MONGO_URI=mongodb://127.0.0.1:27017/solvane
 JWT_SECRET=change-me
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
@@ -49,11 +49,11 @@ AI endpoints currently include deterministic local fallback so the app remains u
 
 ## Live deployment
 
-Current hosted build: https://vellum.thelycoris.com
+Current hosted build: https://solvane.thelycoris.com
 
 Production service on Jarvis VM:
-- Frontend: `/var/www/vellum`
-- Backend: `vellum-backend.service` on port `8081`
-- Nginx site: `vellum.thelycoris.com`
-- MongoDB database: `vellum`
+- Frontend: `/var/www/solvane`
+- Backend: `solvane-backend.service` on port `8081`
+- Nginx site: `solvane.thelycoris.com`
+- MongoDB database: `solvane`
 
