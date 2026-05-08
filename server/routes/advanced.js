@@ -225,6 +225,15 @@ function parseTsv(tsv, page) {
   }).filter(w => w.text.trim() && w.confidence >= 0);
 }
 
+async function saveDocAdvanced(documentId, owner, patch) {
+  if (mongoReady()) {
+    return Document.findOneAndUpdate({ _id: documentId, owner }, patch, { new: true });
+  }
+  const d = mem.docs.find(x => x.id === documentId && x.owner === owner);
+  if (d) Object.assign(d, patch.$set || {}, patch);
+  return d;
+}
+
 async function runPageOcr(pdfPath, page = 1, lang = 'eng') {
   const tools = await ocrToolStatus();
   if (!tools.pdftoppm || !tools.tesseract) {
@@ -366,19 +375,46 @@ r.post('/:id/ocr-page', async (req, res) => {
   const lang = String(req.body?.lang || 'eng').replace(/[^a-zA-Z_+]/g, '').slice(0, 24) || 'eng';
   try {
     const result = await runPageOcr(path.join(uploadDir, d.path), page, lang);
-    res.json({ documentId: req.params.id, result, note: 'OCR page run complete. Review low-confidence words before applying corrections.' });
+    if (mongoReady()) await Document.updateOne({ _id: req.params.id, owner: req.user.id }, { $push: { 'advanced.ocrRuns': { page, lang, avgConfidence: result.avgConfidence, wordCount: result.wordCount, text: result.text } }, $set: { text: result.text } });
+    else { d.advanced = d.advanced || {}; d.advanced.ocrRuns = [...(d.advanced.ocrRuns || []), { page, lang, avgConfidence: result.avgConfidence, wordCount: result.wordCount, text: result.text, createdAt: new Date() }]; d.text = result.text; }
+    res.json({ documentId: req.params.id, result, note: 'OCR page run complete and saved. Review low-confidence words before applying corrections.' });
   } catch (e) { res.status(e.status || 500).json({ error: 'OCR page run failed', detail: e.message }); }
 });
 
 r.post('/:id/ocr-corrections', async (req, res) => {
   const d = await getDoc(req.params.id, req.user.id);
   if (!d) return res.status(404).json({ error: 'Document not found' });
-  const corrections = Array.isArray(req.body?.corrections) ? req.body.corrections : [];
-  res.json({
-    documentId: req.params.id,
-    accepted: corrections.map((c, index) => ({ id: c.id || `correction-${index + 1}`, from: c.from || '', to: c.to || '', page: c.page || 1, confidence: c.confidence || 'manual-review' })),
-    note: 'Corrections accepted for workflow handoff. Searchable OCR text-layer writing is the next engine milestone.'
-  });
+  const corrections = (Array.isArray(req.body?.corrections) ? req.body.corrections : []).map((c, index) => ({
+    page: Number(c.page || 1), from: String(c.from || '').slice(0, 500), to: String(c.to || '').slice(0, 500), confidence: String(c.confidence || 'manual-review'), createdAt: new Date(), id: c.id || `correction-${index + 1}`
+  }));
+  if (mongoReady()) await Document.updateOne({ _id: req.params.id, owner: req.user.id }, { $push: { 'advanced.ocrCorrections': { $each: corrections } } });
+  else { d.advanced = d.advanced || {}; d.advanced.ocrCorrections = [...(d.advanced.ocrCorrections || []), ...corrections]; }
+  res.json({ documentId: req.params.id, accepted: corrections, note: 'OCR corrections persisted. Use searchable PDF generation to write an OCR text layer.' });
+});
+
+r.post('/:id/searchable-pdf', async (req, res) => {
+  const d = await getDoc(req.params.id, req.user.id);
+  if (!d) return res.status(404).json({ error: 'Document not found' });
+  const tools = await ocrToolStatus();
+  if (!tools.ocrmypdf) return res.status(501).json({ error: 'Searchable PDF engine unavailable', detail: 'ocrmypdf is not installed on this host' });
+  const lang = String(req.body?.lang || 'eng').replace(/[^a-zA-Z_+]/g, '').slice(0, 24) || 'eng';
+  const deskew = req.body?.deskew !== false;
+  const input = path.join(uploadDir, d.path);
+  const outputName = `${Date.now()}-${cleanPdfTitle(d.title || 'document')}-searchable.pdf`;
+  const output = path.join(uploadDir, outputName);
+  try {
+    const args = ['--skip-text', '-l', lang, '--optimize', '1'];
+    if (deskew) args.push('--deskew');
+    args.push(input, output);
+    await execFileAsync('ocrmypdf', args, { timeout: 180000 });
+    const bytes = fs.readFileSync(output);
+    const doc = await savePdf(req.user.id, `${d.title || 'document'}-searchable`, bytes, ['ocr-searchable']);
+    fs.rm(output, { force: true }, () => {});
+    res.json({ document: doc, engine: { mode: 'searchable-ocr-pdf', lang, deskew, tool: 'ocrmypdf' }, note: 'Searchable OCR PDF created as a new version while preserving the original.' });
+  } catch (e) {
+    fs.rm(output, { force: true }, () => {});
+    res.status(500).json({ error: 'Searchable PDF generation failed', detail: e.stderr || e.message });
+  }
 });
 
 export default r;
