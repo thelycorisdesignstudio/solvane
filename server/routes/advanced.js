@@ -37,6 +37,8 @@ async function savePdf(owner, title, bytes, tags = []) {
     text: '',
     language: 'auto',
     tags: ['advanced-engine', ...tags],
+    transient: true,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     createdAt: new Date()
   };
   const doc = mongoReady() ? await Document.create(data) : { id: id(), ...data };
