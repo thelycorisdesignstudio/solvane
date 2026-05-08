@@ -105,3 +105,33 @@ Solvane is designed to feel like Apple Preview for everyday document work, while
 ### Not faked
 
 Solvane does not pretend to be a perfect Word-like PDF editor yet. True paragraph reflow, complex table editing, advanced OCR reconstruction, professional prepress, and enterprise legal workflows are long-term engine work.
+
+
+## Advanced PDF editing roadmap
+
+Solvane is intentionally honest about advanced PDF editing. The project will pursue true paragraph-level editing, professional layout reflow, and advanced OCR editing, but these require a deeper PDF/OCR engine and will not be faked in the UI.
+
+Planned engine work:
+
+- True paragraph-level inline editing of existing PDF text.
+- Professional reflow of complex layouts.
+- OCR editing for scanned PDFs with searchable text layers.
+- OCR correction tools and confidence indicators.
+- Complex table/layout detection.
+- Safer enterprise/legal workflows.
+
+See:
+
+- [`docs/advanced-pdf-engine-roadmap.md`](./docs/advanced-pdf-engine-roadmap.md)
+- [`docs/open-source-standards.md`](./docs/open-source-standards.md)
+
+## Maintainer standards
+
+Solvane must remain safe for public use and public contribution:
+
+- No secrets in the repo.
+- No uploaded documents in the repo.
+- No fake feature claims.
+- Backend-only provider keys.
+- Original PDFs are preserved; edits create new versions.
+- Mobile and accessibility are first-class.
