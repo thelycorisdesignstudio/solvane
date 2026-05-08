@@ -2,12 +2,17 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import Document from '../models/Document.js';
 import { auth } from '../middleware/auth.js';
 import { mem, mongoReady, id } from '../services/store.js';
 
+const execFileAsync = promisify(execFile);
 const r = express.Router();
 const uploadDir = path.join(process.cwd(), 'uploads');
+const workDir = path.join(process.cwd(), 'tmp', 'advanced-ocr');
+fs.mkdirSync(workDir, { recursive: true });
 r.use(auth);
 
 async function getDoc(documentId, owner) {
@@ -189,6 +194,62 @@ async function extractTextBlocks(filePath) {
   return { pageCount: pdf.numPages, pages, paragraphs: groupParagraphs(allLines), tables: detectTables(allLines) };
 }
 
+async function commandAvailable(cmd) {
+  try { await execFileAsync('which', [cmd]); return true; } catch { return false; }
+}
+
+async function ocrToolStatus() {
+  const [pdftoppm, tesseract, ocrmypdf] = await Promise.all(['pdftoppm', 'tesseract', 'ocrmypdf'].map(commandAvailable));
+  return { pdftoppm, tesseract, ocrmypdf };
+}
+
+function parseTsv(tsv, page) {
+  const lines = String(tsv || '').trim().split('\n');
+  const header = lines.shift()?.split('\t') || [];
+  const idx = Object.fromEntries(header.map((h, i) => [h, i]));
+  return lines.map((line, n) => {
+    const c = line.split('\t');
+    const text = c[idx.text] || '';
+    const conf = Number(c[idx.conf] || -1);
+    return {
+      id: `ocr-p${page}-${n}`,
+      page,
+      text,
+      confidence: conf,
+      x: Number(c[idx.left] || 0),
+      y: Number(c[idx.top] || 0),
+      width: Number(c[idx.width] || 0),
+      height: Number(c[idx.height] || 0),
+      level: Number(c[idx.level] || 0)
+    };
+  }).filter(w => w.text.trim() && w.confidence >= 0);
+}
+
+async function runPageOcr(pdfPath, page = 1, lang = 'eng') {
+  const tools = await ocrToolStatus();
+  if (!tools.pdftoppm || !tools.tesseract) {
+    const missing = [!tools.pdftoppm && 'pdftoppm', !tools.tesseract && 'tesseract'].filter(Boolean);
+    const err = new Error(`OCR tools missing: ${missing.join(', ')}`);
+    err.status = 501;
+    throw err;
+  }
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const outPrefix = path.join(workDir, `page-${stamp}`);
+  await execFileAsync('pdftoppm', ['-f', String(page), '-l', String(page), '-r', '180', '-png', pdfPath, outPrefix], { timeout: 30000 });
+  const image = `${outPrefix}-${String(page).padStart(1, '0')}.png`;
+  const fallbackImage = `${outPrefix}-1.png`;
+  const imagePath = fs.existsSync(image) ? image : fallbackImage;
+  if (!fs.existsSync(imagePath)) throw new Error('PDF rasterization did not produce an image');
+  const tsvBase = path.join(workDir, `ocr-${stamp}`);
+  await execFileAsync('tesseract', [imagePath, tsvBase, '-l', lang, 'tsv'], { timeout: 60000 });
+  const tsv = fs.readFileSync(`${tsvBase}.tsv`, 'utf8');
+  const words = parseTsv(tsv, page);
+  const text = words.map(w => w.text).join(' ').replace(/\s+/g, ' ').trim();
+  const avgConfidence = words.length ? Math.round(words.reduce((s, w) => s + w.confidence, 0) / words.length) : 0;
+  for (const file of [imagePath, `${tsvBase}.tsv`]) fs.rm(file, { force: true }, () => {});
+  return { page, lang, words, text, avgConfidence, wordCount: words.length };
+}
+
 function wrapText(text, font, size, maxWidth) {
   const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ');
   const lines = [];
@@ -282,16 +343,31 @@ r.get('/:id/ocr-status', async (req, res) => {
   if (!d) return res.status(404).json({ error: 'Document not found' });
   let textLayer = false, pageCount = 0;
   try { const b = await extractTextBlocks(path.join(uploadDir, d.path)); textLayer = b.pages.some(p => p.items.length > 0); pageCount = b.pageCount; } catch {}
+  const tools = await ocrToolStatus();
   res.json({
     documentId: req.params.id,
     pageCount,
     textLayer,
-    ocrEngine: 'tesseract.js-installed',
-    advancedOcrEditing: 'foundation-ready',
-    supportedNow: ['detect text layer', 'extract positioned text blocks', 'infer paragraphs', 'bounded paragraph reflow overlay', 'inspect table-like regions'],
-    nextRequired: ['PDF page rasterization worker for OCR on scanned pages', 'OCR correction persistence', 'cell-grid table editor'],
+    ocrEngine: tools.tesseract ? 'system-tesseract' : 'not-installed',
+    rasterEngine: tools.pdftoppm ? 'poppler-pdftoppm' : 'not-installed',
+    searchablePdfEngine: tools.ocrmypdf ? 'ocrmypdf' : 'not-installed',
+    tools,
+    advancedOcrEditing: tools.tesseract && tools.pdftoppm ? 'runnable-page-ocr' : 'foundation-ready-needs-host-tools',
+    supportedNow: ['detect text layer', 'extract positioned text blocks', 'infer paragraphs', 'bounded paragraph reflow overlay', 'inspect table-like regions', 'rasterize and OCR individual pages when host tools exist'],
+    nextRequired: ['OCR correction persistence into document metadata', 'searchable PDF text-layer writing', 'cell-grid table editor'],
     notFaked: ['font-subset rewriting', 'unbounded Word-style document reflow', 'verified OCR correction without an OCR run']
   });
+});
+
+r.post('/:id/ocr-page', async (req, res) => {
+  const d = await getDoc(req.params.id, req.user.id);
+  if (!d) return res.status(404).json({ error: 'Document not found' });
+  const page = Math.max(1, Math.min(25, Number(req.body?.page || 1)));
+  const lang = String(req.body?.lang || 'eng').replace(/[^a-zA-Z_+]/g, '').slice(0, 24) || 'eng';
+  try {
+    const result = await runPageOcr(path.join(uploadDir, d.path), page, lang);
+    res.json({ documentId: req.params.id, result, note: 'OCR page run complete. Review low-confidence words before applying corrections.' });
+  } catch (e) { res.status(e.status || 500).json({ error: 'OCR page run failed', detail: e.message }); }
 });
 
 r.post('/:id/ocr-corrections', async (req, res) => {
