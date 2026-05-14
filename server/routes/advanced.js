@@ -205,7 +205,7 @@ async function ocrToolStatus() {
   return { pdftoppm, tesseract, ocrmypdf };
 }
 
-function parseTsv(tsv, page) {
+function parseTsv(tsv, page, scale = 1) {
   const lines = String(tsv || '').trim().split('\n');
   const header = lines.shift()?.split('\t') || [];
   const idx = Object.fromEntries(header.map((h, i) => [h, i]));
@@ -218,10 +218,11 @@ function parseTsv(tsv, page) {
       page,
       text,
       confidence: conf,
-      x: Number(c[idx.left] || 0),
-      y: Number(c[idx.top] || 0),
-      width: Number(c[idx.width] || 0),
-      height: Number(c[idx.height] || 0),
+      x: Number(c[idx.left] || 0) / scale,
+      y: Number(c[idx.top] || 0) / scale,
+      width: Number(c[idx.width] || 0) / scale,
+      height: Number(c[idx.height] || 0) / scale,
+      sourceUnits: 'pdf-top-left',
       level: Number(c[idx.level] || 0)
     };
   }).filter(w => w.text.trim() && w.confidence >= 0);
@@ -245,8 +246,10 @@ async function runPageOcr(pdfPath, page = 1, lang = 'eng') {
     throw err;
   }
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const dpi = 180;
+  const scale = dpi / 72;
   const outPrefix = path.join(workDir, `page-${stamp}`);
-  await execFileAsync('pdftoppm', ['-f', String(page), '-l', String(page), '-r', '180', '-png', pdfPath, outPrefix], { timeout: 30000 });
+  await execFileAsync('pdftoppm', ['-f', String(page), '-l', String(page), '-r', String(dpi), '-png', pdfPath, outPrefix], { timeout: 30000 });
   const image = `${outPrefix}-${String(page).padStart(1, '0')}.png`;
   const fallbackImage = `${outPrefix}-1.png`;
   const imagePath = fs.existsSync(image) ? image : fallbackImage;
@@ -254,11 +257,11 @@ async function runPageOcr(pdfPath, page = 1, lang = 'eng') {
   const tsvBase = path.join(workDir, `ocr-${stamp}`);
   await execFileAsync('tesseract', [imagePath, tsvBase, '-l', lang, 'tsv'], { timeout: 60000 });
   const tsv = fs.readFileSync(`${tsvBase}.tsv`, 'utf8');
-  const words = parseTsv(tsv, page);
+  const words = parseTsv(tsv, page, scale);
   const text = words.map(w => w.text).join(' ').replace(/\s+/g, ' ').trim();
   const avgConfidence = words.length ? Math.round(words.reduce((s, w) => s + w.confidence, 0) / words.length) : 0;
   for (const file of [imagePath, `${tsvBase}.tsv`]) fs.rm(file, { force: true }, () => {});
-  return { page, lang, words, text, avgConfidence, wordCount: words.length };
+  return { page, lang, dpi, scale, coordinateSystem: 'pdf-top-left', words, text, avgConfidence, wordCount: words.length };
 }
 
 function wrapText(text, font, size, maxWidth) {
@@ -292,6 +295,19 @@ async function overlayText(doc, sourcePath, block, text, { reflow = false } = {}
   const drawn = lines.slice(0, maxLines);
   drawn.forEach((line, idx) => pg.drawText(line.slice(0, 240), { x, y: y + height - fontSize - (idx * lineHeight), size: fontSize, font, color: rgb(0.05, 0.05, 0.05), maxWidth: width }));
   return { bytes: await pdf.save(), overflow: lines.length > maxLines, lines: lines.length, drawn: drawn.length };
+}
+
+async function overlayRedaction(sourcePath, block) {
+  const pdf = await PDFDocument.load(fs.readFileSync(sourcePath));
+  const pageIndex = Math.max(0, Number(block.page || 1) - 1);
+  const pg = pdf.getPage(pageIndex);
+  const pageHeight = pg.getHeight();
+  const x = Number(block.x || 72);
+  const y = pageHeight - Number(block.y || 720) - Number(block.height || 24);
+  const width = Math.max(8, Number(block.width || 180));
+  const height = Math.max(8, Number(block.height || 24));
+  pg.drawRectangle({ x, y, width, height, color: rgb(0, 0, 0), opacity: 1 });
+  return pdf.save();
 }
 
 r.get('/:id/text-blocks', async (req, res) => {
@@ -340,6 +356,18 @@ r.post('/:id/reflow-paragraph', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Paragraph reflow failed', detail: e.message }); }
 });
 
+r.post('/:id/redact-block', async (req, res) => {
+  const d = await getDoc(req.params.id, req.user.id);
+  if (!d) return res.status(404).json({ error: 'Document not found' });
+  try {
+    res.json({
+      document: await savePdf(req.user.id, `${d.title || 'document'}-redacted-block`, await overlayRedaction(path.join(uploadDir, d.path), req.body || {}), ['redacted-block']),
+      engine: { mode: 'ocr-or-text-block-redaction', coordinateSystem: 'pdf-top-left' },
+      warning: 'Redaction was burned into a new PDF version. Review output before sharing.'
+    });
+  } catch (e) { res.status(500).json({ error: 'Block redaction failed', detail: e.message }); }
+});
+
 r.get('/:id/tables', async (req, res) => {
   const d = await getDoc(req.params.id, req.user.id);
   if (!d) return res.status(404).json({ error: 'Document not found' });
@@ -363,9 +391,9 @@ r.get('/:id/ocr-status', async (req, res) => {
     rasterEngine: tools.pdftoppm ? 'poppler-pdftoppm' : 'not-installed',
     searchablePdfEngine: tools.ocrmypdf ? 'ocrmypdf' : 'not-installed',
     tools,
-    advancedOcrEditing: tools.tesseract && tools.pdftoppm ? 'runnable-page-ocr' : 'foundation-ready-needs-host-tools',
-    supportedNow: ['detect text layer', 'extract positioned text blocks', 'infer paragraphs', 'bounded paragraph reflow overlay', 'inspect table-like regions', 'rasterize and OCR individual pages when host tools exist'],
-    nextRequired: ['OCR correction persistence into document metadata', 'searchable PDF text-layer writing', 'cell-grid table editor'],
+    advancedOcrEditing: tools.tesseract && tools.pdftoppm ? 'runnable-page-ocr-with-editable-word-boxes' : 'foundation-ready-needs-host-tools',
+    supportedNow: ['detect text layer', 'extract positioned text blocks', 'infer paragraphs', 'bounded paragraph reflow overlay', 'inspect table-like regions', 'rasterize and OCR individual pages when host tools exist', 'convert OCR word boxes into PDF coordinates', 'redact OCR/text blocks', 'replace OCR/text blocks with overlay text'],
+    nextRequired: ['searchable PDF text-layer writing', 'cell-grid table editor', 'font-aware scanned document reconstruction'],
     notFaked: ['font-subset rewriting', 'unbounded Word-style document reflow', 'verified OCR correction without an OCR run']
   });
 });

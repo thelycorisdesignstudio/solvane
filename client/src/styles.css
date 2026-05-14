@@ -236,3 +236,12 @@ body{background:var(--sv-bg)!important;color:var(--sv-ink)!important}.landing,.a
 .applyEdit{background:#0d2018!important;color:#f5f0e5!important;border:1px solid rgba(13,32,24,.16)!important}
 .toolDisabled{display:grid;gap:4px;margin:0 0 12px;padding:12px 14px;border-radius:18px;background:#fff4d8;color:#2b2212;border:1px solid rgba(201,160,80,.35)}.toolDisabled b{font-size:.95rem}.toolDisabled span{font-size:.82rem}.inspector small{display:block;margin:.75rem 0;padding:.7rem .85rem;border-radius:14px;background:rgba(13,32,24,.07);color:#415049;font-weight:700}.toolgrid button:disabled,.inspector button:disabled{opacity:.45;cursor:not-allowed}.resultLink{margin-top:10px}.resultLink a,.viewerResult a{background:#0d2018!important;color:#f5f0e5!important}
 .placementBox{margin:12px 0;padding:12px;border-radius:18px;background:rgba(245,240,229,.08);border:1px solid rgba(245,240,229,.12)}.placementBox h3{margin:.1rem 0 .35rem}.placementBox p{margin:.1rem 0 .75rem;color:var(--muted);font-size:.86rem}.coordGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.coordGrid label{font-size:.72rem;color:var(--gold);font-weight:900}.coordGrid input{margin-top:4px;padding:.55rem;border-radius:12px}@media(max-width:760px){.coordGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Product readiness / engineering signal */
+.statusBoard{display:grid;gap:7px;margin:2px 0 6px;padding:12px;border-radius:16px;background:#fff;border:1px solid rgba(13,32,24,.12);color:#102018;box-shadow:0 10px 28px rgba(13,32,24,.06)}
+.statusBoard b{font-size:.9rem;letter-spacing:-.02em}
+.statusBoard span{font-size:.78rem;color:#5d6b64;line-height:1.35}
+.statusBoard div{display:flex;flex-wrap:wrap;gap:5px}
+.statusBoard small{padding:5px 7px;border-radius:10px;background:#f1eadc;color:#102018;font-weight:800;font-size:.68rem}
+.statusBoard.warn{background:#fff4d8;border-color:rgba(201,160,80,.38)}
+@media(max-width:760px){.statusBoard{display:none}}

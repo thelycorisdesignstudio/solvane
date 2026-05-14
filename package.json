@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "client": "npm --prefix client run dev",
-    "server": "npm --prefix server run dev",
-    "build": "npm --prefix client run build",
-    "check": "node --check server/server.js && npm --prefix client run build",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "check": "node --check server/server.js && cd client && npm run build",
+    "smoke:free": "node scripts/smoke-free-workspace.mjs",
     "desktop:build": "npm run build && electron-builder --mac dmg --linux AppImage deb --publish never",
     "desktop:build:linux": "npm run build && electron-builder --linux AppImage deb --publish never",
     "desktop:build:mac": "npm run build && electron-builder --mac dmg --publish never"
